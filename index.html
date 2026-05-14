@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTB Telemetrie Lab PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; text-align: center; padding: 10px; margin: 0; }
+        .card { background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; text-align: left; }
+        h2, h3 { text-align: center; color: #007bff; margin: 5px 0; }
+        .tab-bar { display: flex; gap: 2px; margin-bottom: 15px; background: #333; border-radius: 10px; overflow: hidden; }
+        .tab-btn { flex: 1; padding: 12px; background: #333; border: none; color: white; cursor: pointer; font-size: 0.9em; }
+        .tab-btn.active { background: #007bff; font-weight: bold; }
+        label { display: block; margin-top: 10px; font-size: 0.75em; color: #aaa; text-transform: uppercase; }
+        input, textarea, select { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; }
+        button.main-action { background: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 15px; }
+        .record { background: #dc3545 !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .archive-item { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85em; border-left: 4px solid #444; position: relative; }
+        .selected-run { border-left-color: #007bff; background: #333; }
+        .delete-btn { position: absolute; right: 10px; top: 10px; color: #dc3545; font-size: 1.2em; border: none; background: none; }
+        #myChart { background: white; border-radius: 8px; margin-top: 10px; height: 250px !important; }
+        .feedback-box { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; font-style: italic; color: #ddd; }
+    </style>
+</head>
+<body>
+
+    <h2>MTB Setup Lab 🚲</h2>
+
+    <div class="tab-bar">
+        <button onclick="showPage('measure')" id="btn-measure" class="tab-btn active">Trail</button>
+        <button onclick="showPage('rebound')" id="btn-rebound" class="tab-btn">Rebound</button>
+        <button onclick="showPage('archive')" id="btn-archive" class="tab-btn">Archiv</button>
+    </div>
+
+    <!-- SEITE: TRAIL AUFNAHME -->
+    <div id="page-measure">
+        <div class="card" id="setup-area">
+            <h3>Lauf-Konfiguration</h3>
+            <input type="text" id="runName" placeholder="Name des Trails...">
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label>PSI</label><input type="number" id="springVal" value="80"></div>
+                <div style="flex:1;"><label>Rebound</label><input type="number" id="lsrVal" value="5"></div>
+            </div>
+            <button id="reqBtn" class="main-action">1. Sensoren aktivieren</button>
+            <button id="mainBtn" class="main-action" style="display:none;">START AUFNAHME</button>
+        </div>
+
+        <div id="feedback-modal" class="card" style="display:none;">
+            <h3>Subjektive Bewertung</h3>
+            <label>Grip (1=Rutschig, 5=Schiene)</label>
+            <input type="range" id="rate-grip" min="1" max="5" value="3">
+            <label>Arm-Pump (1=Nichts, 5=Beton)</label>
+            <input type="range" id="rate-arm" min="1" max="5" value="1">
+            <label>Kommentar</label>
+            <textarea id="run-comment" rows="2" placeholder="Wie hat es sich angefühlt?"></textarea>
+            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Im Archiv speichern</button>
+        </div>
+    </div>
+
+    <!-- SEITE: REBOUND TEST (BORDSTEIN) -->
+    <div id="page-rebound" style="display:none;">
+        <div class="card">
+            <h3>Bordstein-Assistent</h3>
+            <p style="font-size:0.8em; color:#aaa;">Rolle im Stehen von einer Kante. Die App misst die Beruhigungszeit der Gabel.</p>
+            <button id="reboundStartBtn" class="main-action" style="background:#6f42c1;">Test Starten (3s)</button>
+            <div id="reboundResult" style="margin-top:15px; text-align:center;"></div>
+        </div>
+    </div>
+
+    <!-- SEITE: ARCHIV -->
+    <div id="page-archive" style="display:none;">
+        <div class="card">
+            <div id="archive-list"></div>
+            <button id="compareBtn" class="main-action" style="background:#28a745; display:none;">Vergleich anzeigen</button>
+            <canvas id="myChart" style="display:none;"></canvas>
+            <div id="compareDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        let accelerationData = [];
+        let isRecording = false;
+        let chart = null;
+        let selectedRuns = [];
+
+        // PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + page).classList.add('active');
+            document.getElementById('page-measure').style.display = page === 'measure' ? 'block' : 'none';
+            document.getElementById('page-rebound').style.display = page === 'rebound' ? 'block' : 'none';
+            document.getElementById('page-archive').style.display = page === 'archive' ? 'block' : 'none';
+            if(page === 'archive') renderArchive();
+        }
+
+        // Sensor Aktivierung (Android Chrome braucht oft keine Permission, aber wir halten es sauber)
+        document.getElementById('reqBtn').onclick = () => {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission().then(res => { if(res == 'granted') activate(); });
+            } else { activate(); }
+        };
+
+        function activate() {
+            document.getElementById('reqBtn').style.display = 'none';
+            document.getElementById('mainBtn').style.display = 'block';
+            window.ondevicemotion = (e) => {
+                if (!isRecording) return;
+                let acc = e.acceleration || e.accelerationIncludingGravity;
+                let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+                if(total > 0.5) {
+                    accelerationData.push(total);
+                    document.getElementById('mainBtn').innerText = `STOPP (${accelerationData.length})`;
+                }
+            };
+        }
+
+        // Aufnahme-Logik
+        document.getElementById('mainBtn').onclick = function() {
+            if (!isRecording) {
+                accelerationData = [];
+                isRecording = true;
+                this.classList.add('record');
+            } else {
+                isRecording = false;
+                this.classList.remove('record');
+                this.innerText = "START AUFNAHME";
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('feedback-modal').style.display = 'block';
+            }
+        };
+
+        function finalizeSave() {
+    if(accelerationData.length < 10) {
+        alert("Fehler: Zu wenig Datenpunkte (" + accelerationData.length + ")");
+        return;
+    }
+    
+    // Wir berechnen die Peaks hier nochmal zur Sicherheit
+    let tempData = [...accelerationData];
+    let indexed = tempData.map((val, idx) => ({val, idx})).sort((a,b) => b.val - a.val);
+    
+    const run = {
+        id: Date.now(),
+        date: new Date().toLocaleString('de-DE'),
+        name: document.getElementById('runName').value || "Lauf",
+        setup: { 
+            psi: document.getElementById('springVal').value, 
+            lsr: document.getElementById('lsrVal').value 
+        },
+        feedback: { 
+            grip: document.getElementById('rate-grip').value, 
+            arm: document.getElementById('rate-arm').value,
+            msg: document.getElementById('run-comment').value 
+        },
+        data: tempData,
+        peaks: indexed.slice(0, 5),
+        avg: tempData.reduce((a,b) => a+b, 0) / tempData.length
+    };
+
+    try {
+        let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
+        runs.push(run);
+        localStorage.setItem('mtb_runs', JSON.stringify(runs)); // WICHTIG
+        
+        alert("Gespeichert! Läufe im Archiv: " + runs.length); // Kontroll-Meldung
+        
+        document.getElementById('feedback-modal').style.display = 'none';
+        document.getElementById('setup-area').style.display = 'block';
+        showPage('archive');
+    } catch (e) {
+        alert("Speicherfehler: " + e);
+    }
+}
+        // Rebound-Test Modus
+        document.getElementById('reboundStartBtn').onclick = function() {
+            this.innerText = "MESSUNG LÄUFT...";
+            this.classList.add('record');
+            accelerationData = [];
+            isRecording = true;
+            setTimeout(() => {
+                isRecording = false;
+                this.innerText = "Test Starten (3s)";
+                this.classList.remove('record');
+                processReboundTest();
+            }, 3000);
+        };
+
+        function processReboundTest() {
+            if(accelerationData.length < 5) return;
+            let max = Math.max(...accelerationData);
+            let osc = accelerationData.filter(v => v > max * 0.4).length;
+            let advice = osc > 15 ? "🐢 Zugstufe zu schnell! (Viel Nachschwingen)" : "✅ Zugstufe stabil.";
+            document.getElementById('reboundResult').innerHTML = `<b>Ergebnis:</b> ${osc} Schwingungen erkannt.<br>${advice}`;
+        }
+
+        function renderArchive() {
+            const list = document.getElementById('archive-list');
+            let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
+            list.innerHTML = "";
+            selectedRuns = [];
+
+            runs.forEach(run => {
+                const item = document.createElement('div');
+                item.className = 'archive-item';
+                item.innerHTML = `
+                    <button class="delete-btn" onclick="deleteRun(${run.id}); event.stopPropagation();">×</button>
+                    <b>${run.name}</b> (${run.date})<br>
+                    <small>PSI: ${run.setup.psi} | LSR: ${run.setup.lsr} | Grip: ${run.feedback.grip}/5</small>
+                    ${run.feedback.msg ? `<div class="feedback-box">${run.feedback.msg}</div>` : ''}
+                `;
+                item.onclick = () => {
+                    if(selectedRuns.includes(run)) {
+                        selectedRuns = selectedRuns.filter(r => r !== run);
+                        item.classList.remove('selected-run');
+                    } else if(selectedRuns.length < 2) {
+                        selectedRuns.push(run);
+                        item.classList.add('selected-run');
+                    }
+                    document.getElementById('compareBtn').style.display = selectedRuns.length === 2 ? 'block' : 'none';
+                };
+                list.appendChild(item);
+            });
+        }
+
+        function deleteRun(id) {
+            let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
+            localStorage.setItem('mtb_runs', JSON.stringify(runs.filter(r => r.id !== id)));
+            renderArchive();
+        }
+
+        document.getElementById('compareBtn').onclick = () => {
+            const canvas = document.getElementById('myChart');
+            canvas.style.display = 'block';
+            const [r1, r2] = selectedRuns;
+            if(chart) chart.destroy();
+            chart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: Math.max(r1.data.length, r2.data.length)}, (_, i) => i),
+                    datasets: [
+                        { label: r1.name, data: r1.data, borderColor: '#888', borderWidth: 1, pointRadius: 0 },
+                        { label: r2.name, data: r2.data, borderColor: '#007bff', borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+            });
+        };
+    </script>
+</body>
+</html>
