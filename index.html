@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTB Telemetrie Lab PWA</title>
+    <title>MTB Setup Lab v3</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,17 +12,16 @@
         .card { background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; text-align: left; }
         h2, h3 { text-align: center; color: #007bff; margin: 5px 0; }
         .tab-bar { display: flex; gap: 2px; margin-bottom: 15px; background: #333; border-radius: 10px; overflow: hidden; }
-        .tab-btn { flex: 1; padding: 12px; background: #333; border: none; color: white; cursor: pointer; font-size: 0.9em; }
+        .tab-btn { flex: 1; padding: 12px; background: #333; border: none; color: white; cursor: pointer; }
         .tab-btn.active { background: #007bff; font-weight: bold; }
         label { display: block; margin-top: 10px; font-size: 0.75em; color: #aaa; text-transform: uppercase; }
-        input, textarea, select { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; }
         button.main-action { background: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 15px; }
         .record { background: #dc3545 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         .archive-item { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85em; border-left: 4px solid #444; position: relative; }
-        .selected-run { border-left-color: #007bff; background: #333; }
         .delete-btn { position: absolute; right: 10px; top: 10px; color: #dc3545; font-size: 1.2em; border: none; background: none; }
-        #myChart { background: white; border-radius: 8px; margin-top: 10px; height: 250px !important; }
+        #chart-container { background: white; border-radius: 8px; margin-top: 10px; height: 300px; width: 100%; position: relative; display: none; }
         .feedback-box { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; font-style: italic; color: #ddd; }
     </style>
 </head>
@@ -40,10 +39,10 @@
     <div id="page-measure">
         <div class="card" id="setup-area">
             <h3>Lauf-Konfiguration</h3>
-            <input type="text" id="runName" placeholder="Name des Trails...">
+            <input type="text" id="runName" placeholder="Trail Name...">
             <div style="display:flex; gap:10px;">
                 <div style="flex:1;"><label>PSI</label><input type="number" id="springVal" value="80"></div>
-                <div style="flex:1;"><label>Rebound</label><input type="number" id="lsrVal" value="5"></div>
+                <div style="flex:1;"><label>LSR</label><input type="number" id="lsrVal" value="5"></div>
             </div>
             <button id="reqBtn" class="main-action">1. Sensoren aktivieren</button>
             <button id="mainBtn" class="main-action" style="display:none;">START AUFNAHME</button>
@@ -53,40 +52,35 @@
             <h3>Subjektive Bewertung</h3>
             <label>Grip (1=Rutschig, 5=Schiene)</label>
             <input type="range" id="rate-grip" min="1" max="5" value="3">
-            <label>Arm-Pump (1=Nichts, 5=Beton)</label>
+            <label>Arm-Pump (1=Entspannt, 5=Beton)</label>
             <input type="range" id="rate-arm" min="1" max="5" value="1">
             <label>Kommentar</label>
-            <textarea id="run-comment" rows="2" placeholder="Wie hat es sich angefühlt?"></textarea>
-            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Im Archiv speichern</button>
+            <textarea id="run-comment" rows="2"></textarea>
+            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Speichern</button>
         </div>
     </div>
 
-    <!-- SEITE: REBOUND TEST (BORDSTEIN) -->
+    <!-- SEITE: REBOUND TEST -->
     <div id="page-rebound" style="display:none;">
         <div class="card">
             <h3>Bordstein-Assistent</h3>
-            <p style="font-size:0.8em; color:#aaa;">Rolle im Stehen von einer Kante. Die App misst die Beruhigungszeit der Gabel.</p>
             <button id="reboundStartBtn" class="main-action" style="background:#6f42c1;">Test Starten (3s)</button>
-            <div id="reboundResult" style="margin-top:15px; text-align:center;"></div>
+            <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold;"></div>
         </div>
     </div>
 
     <!-- SEITE: ARCHIV -->
     <div id="page-archive" style="display:none;">
-        <div class="card">
-            <div id="archive-list"></div>
-            <button id="compareBtn" class="main-action" style="background:#28a745; display:none;">Vergleich anzeigen</button>
-            <canvas id="myChart" style="display:none;"></canvas>
-            <div id="compareDetails"></div>
-        </div>
+        <div id="chart-container"><canvas id="myChart"></canvas></div>
+        <div id="compareDetails"></div>
+        <div id="archive-list" style="margin-top: 15px;"></div>
     </div>
 
-let accelerationData = [];
+    <script>
+        let accelerationData = [];
         let isRecording = false;
         let chart = null;
-        let selectedRuns = [];
 
-        // PWA Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
         }
@@ -97,10 +91,12 @@ let accelerationData = [];
             document.getElementById('page-measure').style.display = page === 'measure' ? 'block' : 'none';
             document.getElementById('page-rebound').style.display = page === 'rebound' ? 'block' : 'none';
             document.getElementById('page-archive').style.display = page === 'archive' ? 'block' : 'none';
-            if(page === 'archive') renderArchive();
+            if(page === 'archive') {
+                document.getElementById('chart-container').style.display = 'none';
+                renderArchive();
+            }
         }
 
-        // SENSOR AKTIVIERUNG
         document.getElementById('reqBtn').onclick = () => {
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(res => { if(res == 'granted') activate(); });
@@ -114,18 +110,14 @@ let accelerationData = [];
                 if (!isRecording) return;
                 let acc = e.acceleration || e.accelerationIncludingGravity;
                 let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-                
-                // Wir ziehen die Erdanziehung ab, falls nötig
                 let val = Math.abs(total - 9.81);
-                
-                if(val > 0.5) { // Filtert minimales Rauschen
-                    accelerationData.push(val);
+                if(val > 0.4) {
+                    accelerationData.push(parseFloat(val.toFixed(2)));
                     document.getElementById('mainBtn').innerText = `STOPP (${accelerationData.length})`;
                 }
             });
         }
 
-        // AUFNAHME-LOGIK
         document.getElementById('mainBtn').onclick = function() {
             if (!isRecording) {
                 accelerationData = [];
@@ -141,32 +133,19 @@ let accelerationData = [];
         };
 
         function finalizeSave() {
-            if(accelerationData.length < 10) return;
+            if(accelerationData.length < 5) { alert("Zu wenig Daten!"); return; }
             
-            // PEAK-ERKENNUNG (Wir suchen echte Schläge)
-            let peaks = [];
-            const threshold = 15; // Nur Werte über 15 m/s² sind echte Peaks
-            for(let i = 1; i < accelerationData.length - 1; i++) {
-                if(accelerationData[i] > threshold && 
-                   accelerationData[i] > accelerationData[i-1] && 
-                   accelerationData[i] > accelerationData[i+1]) {
-                    peaks.push({idx: i, val: accelerationData[i]});
-                }
-            }
-
             const run = {
                 id: Date.now(),
                 date: new Date().toLocaleString('de-DE'),
-                name: document.getElementById('runName').value || "Lauf",
+                name: document.getElementById('runName').value || "Unbenannt",
                 setup: { psi: document.getElementById('springVal').value, lsr: document.getElementById('lsrVal').value },
                 feedback: { 
                     grip: document.getElementById('rate-grip').value, 
                     arm: document.getElementById('rate-arm').value,
                     msg: document.getElementById('run-comment').value 
                 },
-                data: accelerationData,
-                peaks: peaks.sort((a,b) => b.val - a.val).slice(0, 10),
-                avg: accelerationData.reduce((a,b) => a+b, 0) / accelerationData.length
+                data: [...accelerationData]
             };
 
             let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
@@ -178,9 +157,9 @@ let accelerationData = [];
             showPage('archive');
         }
 
-        // REBOUND-TEST (MIT FILTER)
+        // REBOUND TEST MIT STARKER GLÄTTUNG
         document.getElementById('reboundStartBtn').onclick = function() {
-            this.innerText = "JETZT PLOPPEN LASSEN...";
+            this.innerText = "MESSUNG...";
             this.classList.add('record');
             accelerationData = [];
             isRecording = true;
@@ -193,91 +172,74 @@ let accelerationData = [];
         };
 
         function processReboundTest() {
-            if(accelerationData.length < 5) return;
-            
-            // Filter: Wir zählen nur Hübe, die eine gewisse Energie haben
-            let oscillations = 0;
-            let lastPeakTime = 0;
-            const minPower = Math.max(...accelerationData) * 0.3; // 30% des Max-Schlags
-            
-            for(let i = 1; i < accelerationData.length - 1; i++) {
-                if(accelerationData[i] > minPower && 
-                   accelerationData[i] > accelerationData[i-1] && 
-                   accelerationData[i] > accelerationData[i+1]) {
-                    
-                    // Zeit-Abstand zwischen Schwingungen (Debounce)
-                    if(i - lastPeakTime > 5) { 
-                        oscillations++;
-                        lastPeakTime = i;
-                    }
+            if(accelerationData.length < 10) {
+                document.getElementById('reboundResult').innerText = "Fehler: Keine Bewegung erkannt.";
+                return;
+            }
+
+            // 1. Glättung: Gleitender Durchschnitt über 5 Werte
+            let smoothed = [];
+            for(let i=2; i<accelerationData.length-2; i++) {
+                let avg = (accelerationData[i-2]+accelerationData[i-1]+accelerationData[i]+accelerationData[i+1]+accelerationData[i+2])/5;
+                smoothed.push(avg);
+            }
+
+            // 2. Peaks zählen (nur deutliche Amplituden)
+            let osc = 0;
+            const threshold = Math.max(...smoothed) * 0.4;
+            for(let i=1; i<smoothed.length-1; i++) {
+                if(smoothed[i] > threshold && smoothed[i] > smoothed[i-1] && smoothed[i] > smoothed[i+1]) {
+                    osc++;
                 }
             }
 
-            // Der erste Peak ist der Bordstein selbst, den ziehen wir ab
-            let realOsc = Math.max(0, oscillations - 1);
-            
-            let advice = "";
-            if(realOsc === 0) advice = "✅ Perfekt. Gabel steht sofort still.";
-            else if(realOsc === 1) advice = "🟡 Gut. Ein kleiner Nachschwing-Hub.";
-            else advice = `🐢 Zu schnell! (${realOsc} Nachschwingungen). Rebound langsamer stellen.`;
-
-            document.getElementById('reboundResult').innerHTML = `<b>Ergebnis:</b> ${realOsc} Nachschwingungen.<br>${advice}`;
+            let realOsc = Math.max(0, osc - 1); // Erster Einschlag abziehen
+            let advice = realOsc === 0 ? "✅ Stabil!" : realOsc === 1 ? "🟡 Okay." : `🐢 Zu schnell! (${realOsc} Hübe)`;
+            document.getElementById('reboundResult').innerHTML = `Gefundene Schwingungen: ${realOsc}<br>${advice}`;
         }
 
         function renderArchive() {
             const list = document.getElementById('archive-list');
             let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
             list.innerHTML = "";
-            
-            runs.forEach(run => {
+            runs.reverse().forEach(run => {
                 const item = document.createElement('div');
                 item.className = 'archive-item';
                 item.innerHTML = `
                     <button class="delete-btn" onclick="deleteRun(${run.id}); event.stopPropagation();">×</button>
-                    <b>${run.name}</b><br>
-                    <small>${run.date} | PSI: ${run.setup.psi} | Grip: ${run.feedback.grip}/5</small>
+                    <b>${run.name}</b><br><small>${run.date} | PSI: ${run.setup.psi}</small>
                 `;
-                item.onclick = () => {
-                    renderSingleChart(run);
-                };
+                item.onclick = () => renderSingleChart(run);
                 list.appendChild(item);
             });
         }
 
         function renderSingleChart(run) {
-            const canvas = document.getElementById('myChart');
-            canvas.style.display = 'block';
+            document.getElementById('chart-container').style.display = 'block';
+            const ctx = document.getElementById('myChart').getContext('2d');
             if(chart) chart.destroy();
             
-            chart = new Chart(canvas.getContext('2d'), {
+            chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: run.data.map((_, i) => i),
                     datasets: [{
-                        label: run.name + ' (m/s²)',
+                        label: 'g-Kraft',
                         data: run.data,
                         borderColor: '#007bff',
-                        borderWidth: 1.5,
-                        pointRadius: run.data.map((v, i) => {
-                            // Markiere Top-Peaks rot
-                            return run.peaks.some(p => p.idx === i) ? 5 : 0;
-                        }),
-                        pointBackgroundColor: 'red'
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
+                    animation: false,
+                    scales: { y: { beginAtZero: true, grid: { color: '#444' } }, x: { display: false } }
                 }
             });
-            
-            document.getElementById('compareDetails').innerHTML = `
-                <div class="card" style="margin-top:10px; font-size:0.8em;">
-                    <b>Details:</b> Ø ${run.avg.toFixed(1)} m/s² | Max Peak: ${run.peaks[0]?.val.toFixed(1) || 0}<br>
-                    <i>"${run.feedback.msg || 'Kein Kommentar'}"</i>
-                </div>
-            `;
+            window.scrollTo(0,0);
         }
 
         function deleteRun(id) {
@@ -285,5 +247,6 @@ let accelerationData = [];
             localStorage.setItem('mtb_runs', JSON.stringify(runs.filter(r => r.id !== id)));
             renderArchive();
         }
+    </script>
 </body>
 </html>
