@@ -81,8 +81,7 @@
         </div>
     </div>
 
-    <script>
-        let accelerationData = [];
+let accelerationData = [];
         let isRecording = false;
         let chart = null;
         let selectedRuns = [];
@@ -101,7 +100,7 @@
             if(page === 'archive') renderArchive();
         }
 
-        // Sensor Aktivierung (Android Chrome braucht oft keine Permission, aber wir halten es sauber)
+        // SENSOR AKTIVIERUNG
         document.getElementById('reqBtn').onclick = () => {
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(res => { if(res == 'granted') activate(); });
@@ -111,18 +110,22 @@
         function activate() {
             document.getElementById('reqBtn').style.display = 'none';
             document.getElementById('mainBtn').style.display = 'block';
-            window.ondevicemotion = (e) => {
+            window.addEventListener('devicemotion', (e) => {
                 if (!isRecording) return;
                 let acc = e.acceleration || e.accelerationIncludingGravity;
                 let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-                if(total > 0.5) {
-                    accelerationData.push(total);
+                
+                // Wir ziehen die Erdanziehung ab, falls nötig
+                let val = Math.abs(total - 9.81);
+                
+                if(val > 0.5) { // Filtert minimales Rauschen
+                    accelerationData.push(val);
                     document.getElementById('mainBtn').innerText = `STOPP (${accelerationData.length})`;
                 }
-            };
+            });
         }
 
-        // Aufnahme-Logik
+        // AUFNAHME-LOGIK
         document.getElementById('mainBtn').onclick = function() {
             if (!isRecording) {
                 accelerationData = [];
@@ -138,50 +141,46 @@
         };
 
         function finalizeSave() {
-    if(accelerationData.length < 10) {
-        alert("Fehler: Zu wenig Datenpunkte (" + accelerationData.length + ")");
-        return;
-    }
-    
-    // Wir berechnen die Peaks hier nochmal zur Sicherheit
-    let tempData = [...accelerationData];
-    let indexed = tempData.map((val, idx) => ({val, idx})).sort((a,b) => b.val - a.val);
-    
-    const run = {
-        id: Date.now(),
-        date: new Date().toLocaleString('de-DE'),
-        name: document.getElementById('runName').value || "Lauf",
-        setup: { 
-            psi: document.getElementById('springVal').value, 
-            lsr: document.getElementById('lsrVal').value 
-        },
-        feedback: { 
-            grip: document.getElementById('rate-grip').value, 
-            arm: document.getElementById('rate-arm').value,
-            msg: document.getElementById('run-comment').value 
-        },
-        data: tempData,
-        peaks: indexed.slice(0, 5),
-        avg: tempData.reduce((a,b) => a+b, 0) / tempData.length
-    };
+            if(accelerationData.length < 10) return;
+            
+            // PEAK-ERKENNUNG (Wir suchen echte Schläge)
+            let peaks = [];
+            const threshold = 15; // Nur Werte über 15 m/s² sind echte Peaks
+            for(let i = 1; i < accelerationData.length - 1; i++) {
+                if(accelerationData[i] > threshold && 
+                   accelerationData[i] > accelerationData[i-1] && 
+                   accelerationData[i] > accelerationData[i+1]) {
+                    peaks.push({idx: i, val: accelerationData[i]});
+                }
+            }
 
-    try {
-        let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
-        runs.push(run);
-        localStorage.setItem('mtb_runs', JSON.stringify(runs)); // WICHTIG
-        
-        alert("Gespeichert! Läufe im Archiv: " + runs.length); // Kontroll-Meldung
-        
-        document.getElementById('feedback-modal').style.display = 'none';
-        document.getElementById('setup-area').style.display = 'block';
-        showPage('archive');
-    } catch (e) {
-        alert("Speicherfehler: " + e);
-    }
-}
-        // Rebound-Test Modus
+            const run = {
+                id: Date.now(),
+                date: new Date().toLocaleString('de-DE'),
+                name: document.getElementById('runName').value || "Lauf",
+                setup: { psi: document.getElementById('springVal').value, lsr: document.getElementById('lsrVal').value },
+                feedback: { 
+                    grip: document.getElementById('rate-grip').value, 
+                    arm: document.getElementById('rate-arm').value,
+                    msg: document.getElementById('run-comment').value 
+                },
+                data: accelerationData,
+                peaks: peaks.sort((a,b) => b.val - a.val).slice(0, 10),
+                avg: accelerationData.reduce((a,b) => a+b, 0) / accelerationData.length
+            };
+
+            let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
+            runs.push(run);
+            localStorage.setItem('mtb_runs', JSON.stringify(runs));
+            
+            document.getElementById('feedback-modal').style.display = 'none';
+            document.getElementById('setup-area').style.display = 'block';
+            showPage('archive');
+        }
+
+        // REBOUND-TEST (MIT FILTER)
         document.getElementById('reboundStartBtn').onclick = function() {
-            this.innerText = "MESSUNG LÄUFT...";
+            this.innerText = "JETZT PLOPPEN LASSEN...";
             this.classList.add('record');
             accelerationData = [];
             isRecording = true;
@@ -195,39 +194,90 @@
 
         function processReboundTest() {
             if(accelerationData.length < 5) return;
-            let max = Math.max(...accelerationData);
-            let osc = accelerationData.filter(v => v > max * 0.4).length;
-            let advice = osc > 15 ? "🐢 Zugstufe zu schnell! (Viel Nachschwingen)" : "✅ Zugstufe stabil.";
-            document.getElementById('reboundResult').innerHTML = `<b>Ergebnis:</b> ${osc} Schwingungen erkannt.<br>${advice}`;
+            
+            // Filter: Wir zählen nur Hübe, die eine gewisse Energie haben
+            let oscillations = 0;
+            let lastPeakTime = 0;
+            const minPower = Math.max(...accelerationData) * 0.3; // 30% des Max-Schlags
+            
+            for(let i = 1; i < accelerationData.length - 1; i++) {
+                if(accelerationData[i] > minPower && 
+                   accelerationData[i] > accelerationData[i-1] && 
+                   accelerationData[i] > accelerationData[i+1]) {
+                    
+                    // Zeit-Abstand zwischen Schwingungen (Debounce)
+                    if(i - lastPeakTime > 5) { 
+                        oscillations++;
+                        lastPeakTime = i;
+                    }
+                }
+            }
+
+            // Der erste Peak ist der Bordstein selbst, den ziehen wir ab
+            let realOsc = Math.max(0, oscillations - 1);
+            
+            let advice = "";
+            if(realOsc === 0) advice = "✅ Perfekt. Gabel steht sofort still.";
+            else if(realOsc === 1) advice = "🟡 Gut. Ein kleiner Nachschwing-Hub.";
+            else advice = `🐢 Zu schnell! (${realOsc} Nachschwingungen). Rebound langsamer stellen.`;
+
+            document.getElementById('reboundResult').innerHTML = `<b>Ergebnis:</b> ${realOsc} Nachschwingungen.<br>${advice}`;
         }
 
         function renderArchive() {
             const list = document.getElementById('archive-list');
             let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
             list.innerHTML = "";
-            selectedRuns = [];
-
+            
             runs.forEach(run => {
                 const item = document.createElement('div');
                 item.className = 'archive-item';
                 item.innerHTML = `
                     <button class="delete-btn" onclick="deleteRun(${run.id}); event.stopPropagation();">×</button>
-                    <b>${run.name}</b> (${run.date})<br>
-                    <small>PSI: ${run.setup.psi} | LSR: ${run.setup.lsr} | Grip: ${run.feedback.grip}/5</small>
-                    ${run.feedback.msg ? `<div class="feedback-box">${run.feedback.msg}</div>` : ''}
+                    <b>${run.name}</b><br>
+                    <small>${run.date} | PSI: ${run.setup.psi} | Grip: ${run.feedback.grip}/5</small>
                 `;
                 item.onclick = () => {
-                    if(selectedRuns.includes(run)) {
-                        selectedRuns = selectedRuns.filter(r => r !== run);
-                        item.classList.remove('selected-run');
-                    } else if(selectedRuns.length < 2) {
-                        selectedRuns.push(run);
-                        item.classList.add('selected-run');
-                    }
-                    document.getElementById('compareBtn').style.display = selectedRuns.length === 2 ? 'block' : 'none';
+                    renderSingleChart(run);
                 };
                 list.appendChild(item);
             });
+        }
+
+        function renderSingleChart(run) {
+            const canvas = document.getElementById('myChart');
+            canvas.style.display = 'block';
+            if(chart) chart.destroy();
+            
+            chart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: run.data.map((_, i) => i),
+                    datasets: [{
+                        label: run.name + ' (m/s²)',
+                        data: run.data,
+                        borderColor: '#007bff',
+                        borderWidth: 1.5,
+                        pointRadius: run.data.map((v, i) => {
+                            // Markiere Top-Peaks rot
+                            return run.peaks.some(p => p.idx === i) ? 5 : 0;
+                        }),
+                        pointBackgroundColor: 'red'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+            
+            document.getElementById('compareDetails').innerHTML = `
+                <div class="card" style="margin-top:10px; font-size:0.8em;">
+                    <b>Details:</b> Ø ${run.avg.toFixed(1)} m/s² | Max Peak: ${run.peaks[0]?.val.toFixed(1) || 0}<br>
+                    <i>"${run.feedback.msg || 'Kein Kommentar'}"</i>
+                </div>
+            `;
         }
 
         function deleteRun(id) {
@@ -235,24 +285,5 @@
             localStorage.setItem('mtb_runs', JSON.stringify(runs.filter(r => r.id !== id)));
             renderArchive();
         }
-
-        document.getElementById('compareBtn').onclick = () => {
-            const canvas = document.getElementById('myChart');
-            canvas.style.display = 'block';
-            const [r1, r2] = selectedRuns;
-            if(chart) chart.destroy();
-            chart = new Chart(canvas.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: Math.max(r1.data.length, r2.data.length)}, (_, i) => i),
-                    datasets: [
-                        { label: r1.name, data: r1.data, borderColor: '#888', borderWidth: 1, pointRadius: 0 },
-                        { label: r2.name, data: r2.data, borderColor: '#007bff', borderWidth: 2, pointRadius: 0 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
-            });
-        };
-    </script>
 </body>
 </html>
