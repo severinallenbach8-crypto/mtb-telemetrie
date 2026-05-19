@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTB Telemetrie Pro v6.1</title>
+    <title>MTB Telemetrie Pro v6.2</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,6 +42,7 @@
         <button onclick="showPage('archive')" id="btn-archive" class="tab-btn">Archiv</button>
     </div>
 
+    <!-- SEITE: GEFÜHRTER SETUP-GUIDE -->
     <div id="page-guide">
         <div class="step-indicator">
             <span id="ind-1" class="active-step">1. Offen</span>
@@ -51,6 +52,7 @@
             <span id="ind-5">5. LSC</span>
         </div>
 
+        <!-- SCHRITT 1 -->
         <div id="step-card-1" class="card">
             <h3>Schritt 1: Sensoren & Offene Ventile</h3>
             <p>Zuerst müssen wir dem Browser Zugriff auf die Bewegungssensoren erlauben:</p>
@@ -58,6 +60,7 @@
             <p>Drehe danach alle Klicks an Gabel und Dämpfer komplett auf das **Minus-Symbol (-)** bzw. gegen den Uhrzeigersinn (vollständig offen).</p>
         </div>
 
+        <!-- SCHRITT 2 -->
         <div id="step-card-2" class="card" style="display:none;">
             <h3>Schritt 2: SAG (Negativfederweg)</h3>
             <p>Zieh deine Bike-Klamotten an. Geh in die "Angriffsposition" (stehend auf den Pedalen). Schiebe die O-Ringe an den Elementen ganz ran und steige vorsichtig ab.</p>
@@ -69,18 +72,21 @@
             </div>
         </div>
 
+        <!-- SCHRITT 3 -->
         <div id="step-card-3" class="card" style="display:none;">
             <h3>Schritt 3: Rebound (Zugstufe)</h3>
-            <p>Rolle im Stehen ruhig von einer Bordsteinkante und bleibe danach fest auf den Pedalen stehen. Die App filtert Handzittern heraus.</p>
+            <p>Rolle im Stehen ruhig von einer Bordsteinkante und bleibe danach fest auf den Pedalen stehen. Der verbesserte Filter zieht die Erdbeschleunigung ab und ignoriert Mikro-Vibrationen unter 0.4 G.</p>
             <button id="reboundStartBtn" class="main-action" style="background:#6f42c1;">Bordstein-Test Starten (3s)</button>
             <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold; background: #2a2a2a; padding: 10px; border-radius: 8px;">Noch keine Messung durchgeführt.</div>
         </div>
 
+        <!-- SCHRITT 4 -->
         <div id="step-card-4" class="card" style="display:none;">
             <h3>Schritt 4: High-Speed Compression (HSC)</h3>
             <p>Wechsle oben auf den Reiter <b>"Trail-Test"</b>. Fahre ein ruppiges Stück Trail mit schnellen Schlägen (Wurzeln, Steine). Komm danach hierher zurück.</p>
         </div>
 
+        <!-- SCHRITT 5 -->
         <div id="step-card-5" class="card" style="display:none;">
             <h3>Schritt 5: Low-Speed Compression (LSC)</h3>
             <p>Achte beim Fahren darauf, ob das Bike beim harten Anbremsen oder in tiefen Kurvenkompressionen wegsackt. Falls ja, erhöhen wir im Trail-Test die LSC-Klicks.</p>
@@ -93,6 +99,7 @@
         </div>
     </div>
 
+    <!-- SEITE: TRAIL AUFNAHME -->
     <div id="page-measure" style="display:none;">
         <div class="card" id="setup-area">
             <h3>Lauf-Konfiguration</h3>
@@ -122,11 +129,13 @@
         </div>
     </div>
 
+    <!-- SEITE: ARCHIV -->
     <div id="page-archive" style="display:none;">
         <h3>Gespeicherte Testläufe</h3>
         <div id="archive-list"></div>
     </div>
 
+    <!-- FULLSCREEN CHART OVERLAY -->
     <div id="fullscreenModal" class="fullscreen-overlay">
         <button class="close-fullscreen" onclick="closeFullscreen()">×</button>
         <div class="chart-wrapper">
@@ -189,9 +198,14 @@
                 if (!isRecording) return;
                 let acc = e.acceleration || e.accelerationIncludingGravity;
                 if(!acc || acc.x === null) return;
+                
+                // Vektorsumme berechnen
                 let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-                let val = Math.abs(total - 9.81);
-                accelerationData.push(val);
+                
+                // OPTIMIERUNG: Erdbeschleunigung abziehen (In G-Kraft umrechnen, wobei 1 G = 9.81 m/s²)
+                // Ruhezustand = 0 G. Reine Schlagwirkung wird gemessen.
+                let gForcePure = Math.abs(total - 9.81) / 9.81; 
+                accelerationData.push(gForcePure);
             });
         }
 
@@ -240,29 +254,39 @@
                 document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte.";
                 return;
             }
-            let clean = lowPassFilter(accelerationData, 0.1);
-            let osc = 0;
-            let lastPeakIdx = 0;
             
-            const maxVal = Math.max(...clean);
-            if(maxVal < 1.5) {
-                document.getElementById('reboundResult').innerHTML = "Ergebnis: 0 Schwingungen.<br><span style='color:#28a745;'>✓ Perfekt ruhig gehalten oder keine Bewegung erkannt.</span>";
+            // Glättung für die Impulserkennung
+            let clean = lowPassFilter(accelerationData, 0.15);
+            
+            // 1. Finde den Haupt-Schlag (die Landung des Reifens nach der Kante)
+            let maxVal = Math.max(...clean);
+            let mainImpactIdx = clean.indexOf(maxVal);
+
+            // Wenn der Gesamtimpuls extrem schwach war (< 0.15 G über Nullniveau)
+            if(maxVal < 0.15) {
+                document.getElementById('reboundResult').innerHTML = "Kein eindeutiger Bordsteinschlag erkannt.<br><span style='color:#dc3545; font-size:0.85em;'>Bitte fahre etwas dynamischer von der Kante.</span>";
                 return;
             }
 
-            const triggerThreshold = maxVal * 0.35; 
-
-            for(let i = 1; i < clean.length - 1; i++) {
-                if(clean[i] > triggerThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
-                    if(i - lastPeakIdx > 15) { 
+            // 2. Suche nach echten Nachschwingungen ERST NACH dem Hauptschlag
+            // Ein Peak muss sich vom Rauschen abheben (Mindestwert: 0.4 G absolut ODER 35% des Hauptschlags)
+            let minThreshold = Math.max(0.4, maxVal * 0.35);
+            let osc = 0;
+            let lastPeakIdx = mainImpactIdx;
+            
+            for(let i = mainImpactIdx + 1; i < clean.length - 1; i++) {
+                // Lokales Maximum ermitteln
+                if(clean[i] > minThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
+                    // Zeitlicher Mindestabstand zwischen Peaks (Hysterese gegen Sensorflattern), ca. 150ms bei ~50Hz Abtastung
+                    if(i - lastPeakIdx > 8) { 
                         osc++;
                         lastPeakIdx = i;
                     }
                 }
             }
-            let realOsc = Math.max(0, osc - 1);
-            let advice = realOsc === 0 ? "✅ Optimal dämpfend!" : realOsc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${realOsc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
-            document.getElementById('reboundResult').innerHTML = `Ergebnis: ${realOsc} Schwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
+            
+            let advice = osc === 0 ? "✅ Optimal dämpfend! Keine kritischen Nachschwingungen." : osc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${osc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
+            document.getElementById('reboundResult').innerHTML = `Ergebnis: ${osc} Nachschwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
         }
 
         function computeInlineFFT(samples) {
@@ -314,7 +338,7 @@
                     arm: document.getElementById('rate-arm').value,
                     msg: document.getElementById('run-comment').value 
                 },
-                data: filteredTrailData.map(v => parseFloat(v.toFixed(2))),
+                data: filteredTrailData.map(v => parseFloat(v.toFixed(3))),
                 analysis: { 
                     ls: fftResult.lowSpeed, 
                     hs: fftResult.highSpeed, 
@@ -359,7 +383,7 @@
                 data: {
                     labels: run.data.map((_, i) => (i / 50).toFixed(1) + "s"), 
                     datasets: [{
-                        label: `${run.name} (Vibrationen)`,
+                        label: `${run.name} (Reine Stoßbeschleunigung)`,
                         data: run.data,
                         borderColor: '#007bff',
                         borderWidth: 1.5,
@@ -374,7 +398,7 @@
                     scales: { 
                         y: { 
                             beginAtZero: true,
-                            title: { display: true, text: 'G-Kraft (Abweichung von Erdbeschleunigung)', color: '#007bff' }
+                            title: { display: true, text: 'Reine Stoßkraft (in G, Erdbeschleunigung bereinigt)', color: '#007bff' }
                         }, 
                         x: { 
                             title: { display: true, text: 'Zeitdauer des Testlaufs (Sekunden)', color: '#aaa' }
