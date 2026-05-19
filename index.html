@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTB Telemetrie Pro v5</title>
+    <title>MTB Telemetrie Pro v6</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,15 +19,14 @@
         button.main-action { background: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; }
         .record { background: #dc3545 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        .archive-item { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85em; border-left: 4px solid #444; position: relative; }
+        .archive-item { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85em; border-left: 4px solid #007bff; position: relative; }
         .delete-btn { position: absolute; right: 10px; top: 10px; color: #dc3545; font-size: 1.2em; border: none; background: none; }
         
         .fullscreen-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #121212; z-index: 9999; padding: 10px; box-sizing: border-box; }
         .close-fullscreen { position: absolute; top: 10px; right: 15px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 1.2em; font-weight: bold; z-index: 10000; }
-        .chart-wrapper { width: 100%; height: calc(100% - 150px); margin-top: 35px; background: white; border-radius: 8px; }
+        .chart-wrapper { width: 100%; height: calc(100% - 180px); margin-top: 35px; background: #1e1e1e; border-radius: 8px; padding: 5px; box-sizing: border-box; }
         .analysis-box { background: #222; color: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.85em; text-align: left; border-left: 4px solid #007bff; }
         
-        /* Guide-spezifisch */
         .step-indicator { display: flex; justify-content: space-between; font-size: 0.75em; color: #666; margin-bottom: 15px; padding: 0 5px; }
         .step-indicator .active-step { color: #007bff; font-weight: bold; }
         .guide-nav { display: flex; gap: 10px; margin-top: 15px; }
@@ -55,50 +54,48 @@
 
         <!-- SCHRITT 1 -->
         <div id="step-card-1" class="card">
-            <h3>Schritt 1: Dämpfung komplett öffnen</h3>
-            <p>Drehe alle Klicks an deiner Gabel und deinem Dämpfer komplett auf das **Minus-Symbol (-)** bzw. gegen den Uhrzeigersinn.</p>
-            <p style="color: #aaa; font-size: 0.85em;">Warum? Damit Ölventile den Luftdruck-Test (SAG) im nächsten Schritt nicht verfälschen.</p>
+            <h3>Schritt 1: Sensoren & Offene Ventile</h3>
+            <p>Zuerst müssen wir dem Browser Zugriff auf die Bewegungssensoren erlauben:</p>
+            <button id="guideSensorBtn" class="main-action" style="background: #28a745; margin-bottom: 15px;">1. Bewegungssensoren freigeben</button>
+            <p>Drehe danach alle Klicks an Gabel und Dämpfer komplett auf das **Minus-Symbol (-)** bzw. gegen den Uhrzeigersinn (vollständig offen).</p>
         </div>
 
         <!-- SCHRITT 2 -->
         <div id="step-card-2" class="card" style="display:none;">
-            <h3>Schritt 2: SAG (Negativfederweg) einstellen</h3>
-            <p>Gehe in voller Montur auf dein Bike, gehe kurz in die Knie und nimm die normale Abfahrtshaltung im Stehen ein. Schiebe den O-Ring an der Gabel ganz nach unten. Steige vorsichtig ab.</p>
-            <label>Gemessener SAG (Richtwert: 15-20% Gabel)</label>
-            <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                <input type="number" id="guide-psi" value="80" style="flex:2;" placeholder="Druck in PSI">
+            <h3>Schritt 2: SAG (Negativfederweg)</h3>
+            <p>Zieh deine Bike-Klamotten an. Geh in die "Angriffsposition" (stehend auf den Pedalen). Schiebe die O-Ringe an den Elementen ganz ran und steige vorsichtig ab.</p>
+            <p><b>Richtwerte für optimalen Negativfederweg:</b><br>• Federgabel: 15% – 20% des Gesamtfederwegs<br>• Dämpfer (Heck): 25% – 30% des Gesamtfederwegs</p>
+            <label>Eingestellter Luftdruck für den Testlauf</label>
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="guide-psi" value="80" style="flex:2;">
                 <span style="line-height:40px;">PSI</span>
             </div>
-            <p style="color: #aaa; font-size: 0.85em;">Zu viel SAG? Mehr PSI pumpen. Zu wenig SAG? Luft ablassen.</p>
         </div>
 
         <!-- SCHRITT 3 -->
         <div id="step-card-3" class="card" style="display:none;">
-            <h3>Schritt 3: Rebound (Zugstufe) einstellen</h3>
-            <p>Rolle im Stehen flach von einer Bordsteinkante und bleibe ruhig im Sattel/auf den Pedalen stehen. Die App misst die Schwingungen.</p>
-            <button id="reboundStartBtn" class="main-action" style="background:#6f42c1; margin-top:5px;">Bordstein-Test Starten (3s)</button>
-            <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold;"></div>
-            <p style="color: #aaa; font-size: 0.85em; margin-top: 10px;">Ziel: 0 bis maximal 1 Nachschwingung. Drehe das Rebound-Rädchen bei Bedarf Klick für Klick Richtung (+) zu.</p>
+            <h3>Schritt 3: Rebound (Zugstufe)</h3>
+            <p>Rolle im Stehen ruhig von einer Bordsteinkante und bleibe danach fest auf den Pedalen stehen. Die App filtert Handzittern heraus.</p>
+            <button id="reboundStartBtn" class="main-action" style="background:#6f42c1;">Bordstein-Test Starten (3s)</button>
+            <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold; background: #2a2a2a; padding: 10px; border-radius: 8px;">Noch keine Messung durchgeführt.</div>
         </div>
 
         <!-- SCHRITT 4 -->
         <div id="step-card-4" class="card" style="display:none;">
             <h3>Schritt 4: High-Speed Compression (HSC)</h3>
-            <p>Fahre jetzt eine kurze Testsequenz auf deinem Trail. Suche dir ein Teilstück mit harten Schlägen (Wurzeln, Steine, Absätze).</p>
-            <p>Wechsle dafür oben auf den Reiter <b>"Trail-Test"</b>, mache eine Aufnahme und kehre danach hierher zurück, um das Feedback zu sehen.</p>
+            <p>Wechsle oben auf den Reiter <b>"Trail-Test"</b>. Fahre ein ruppiges Stück Trail mit schnellen Schlägen (Wurzeln, Steine). Komm danach hierher zurück.</p>
         </div>
 
         <!-- SCHRITT 5 -->
         <div id="step-card-5" class="card" style="display:none;">
             <h3>Schritt 5: Low-Speed Compression (LSC)</h3>
-            <p>Der letzte Feinschliff: Achte beim Fahren darauf, ob das Bike bei Gewichtsverlagerungen, in Anliegerkurven oder beim harten Anbremsen zu stark wegsackt ("Eintauchen").</p>
-            <p style="color: #aaa; font-size: 0.85em;">Falls ja: Schließe die LSC (Low-Speed-Druckstufe) um 2 Klicks in Richtung (+). Das bringt Gegenhalt und Stabilität.</p>
-            <h3 style="color: #28a745; margin-top: 20px;">🎉 Grundsetup abgeschlossen!</h3>
+            <p>Achte beim Fahren darauf, ob das Bike beim harten Anbremsen oder in tiefen Kurvenkompressionen wegsackt. Falls ja, erhöhen wir im Trail-Test die LSC-Klicks.</p>
+            <h3 style="color: #28a745; margin-top: 20px;">🎉 Guide bereit!</h3>
         </div>
 
         <div class="guide-nav">
             <button id="guide-prev" class="main-action" style="background:#444; display:none;" onclick="moveStep(-1)">Zurück</button>
-            <button id="guide-next" class="main-action" onclick="moveStep(1)">Verstanden / Weiter</button>
+            <button id="guide-next" class="main-action" onclick="moveStep(1)">Weiter</button>
         </div>
     </div>
 
@@ -106,29 +103,35 @@
     <div id="page-measure" style="display:none;">
         <div class="card" id="setup-area">
             <h3>Lauf-Konfiguration</h3>
-            <input type="text" id="runName" placeholder="Trail Name...">
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label>PSI (aus Schritt 2)</label><input type="number" id="springVal" value="80"></div>
-                <div style="flex:1;"><label>Klicks LSR (Zugstufe)</label><input type="number" id="lsrVal" value="5"></div>
+            <input type="text" id="runName" placeholder="Trail Name (z.B. Downhill-Sektion)...">
+            
+            <div style="display:flex; gap:10px; margin-top: 5px;">
+                <div style="flex:1;"><label>Luftdruck (PSI)</label><input type="number" id="springVal" value="80"></div>
+                <div style="flex:1;"><label>Zugstufe (LSR)</label><input type="number" id="lsrVal" value="5"></div>
             </div>
-            <button id="reqBtn" class="main-action">1. Sensoren aktivieren</button>
-            <button id="mainBtn" class="main-action" style="display:none;">START AUFNAHME</button>
+            <div style="display:flex; gap:10px; margin-top: 5px;">
+                <div style="flex:1;"><label>HSC (Klicks)</label><input type="number" id="hscVal" value="0"></div>
+                <div style="flex:1;"><label>LSC (Klicks)</label><input type="number" id="lscVal" value="0"></div>
+            </div>
+            
+            <button id="mainBtn" class="main-action" style="background: #007bff; margin-top: 20px;">START AUFNAHME</button>
         </div>
 
         <div id="feedback-modal" class="card" style="display:none;">
-            <h3>Subjektive Bewertung</h3>
-            <label>Grip (1=Rutschig, 5=Schiene)</label>
+            <h3>Subjektives Feedback</h3>
+            <label>Grip & Traktion (1=Rutschig, 5=Perfekt)</label>
             <input type="range" id="rate-grip" min="1" max="5" value="3">
-            <label>Arm-Pump (1=Entspannt, 5=Beton)</label>
-            <input type="range" id="rate-arm" min="1" max="5" value="1">
-            <label>Kommentar</label>
-            <textarea id="run-comment" rows="2"></textarea>
-            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Speichern & Analysieren</button>
+            <label>Fahrwerkshärte / Arm-Pump (1=Zu weich, 5=Zu hart/Starr)</label>
+            <input type="range" id="rate-arm" min="1" max="5" value="3">
+            <label>Deine Notizen</label>
+            <textarea id="run-comment" rows="2" placeholder="Schläge, Durchschläge oder Fahrgefühl..."></textarea>
+            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Speichern & FFT-Analyse</button>
         </div>
     </div>
 
     <!-- SEITE: ARCHIV -->
     <div id="page-archive" style="display:none;">
+        <h3>Gespeicherte Testläufe</h3>
         <div id="archive-list"></div>
     </div>
 
@@ -144,6 +147,7 @@
     <script>
         let accelerationData = [];
         let isRecording = false;
+        let sensorActive = false;
         let chart = null;
         let currentStep = 1;
 
@@ -160,30 +164,62 @@
             if(page === 'archive') { closeFullscreen(); renderArchive(); }
         }
 
-        // NAVIGATION FÜR DEN SETUP-GUIDE
         function moveStep(direction) {
             document.getElementById(`step-card-${currentStep}`).style.display = 'none';
             document.getElementById(`ind-${currentStep}`).classList.remove('active-step');
-            
             currentStep += direction;
-            
             document.getElementById(`step-card-${currentStep}`).style.display = 'block';
             document.getElementById(`ind-${currentStep}`).classList.add('active-step');
             
-            // Buttons anpassen
             document.getElementById('guide-prev').style.display = currentStep > 1 ? 'block' : 'none';
             document.getElementById('guide-next').style.display = currentStep < 5 ? 'block' : 'none';
             
-            // Wertübergabe von Schritt 2 zu Trail-Konfiguration automatisch synchronsieren
             if(currentStep === 3) {
                 document.getElementById('springVal').value = document.getElementById('guide-psi').value;
             }
         }
 
-        document.getElementById('reqBtn').onclick = () => {
+        // ZENTRALE SENSOR-INITIALISIERUNG
+        const initSensors = () => {
+            if (sensorActive) return;
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission().then(res => { if(res == 'granted') activate(); });
-            } else { activate(); }
+                DeviceMotionEvent.requestPermission().then(res => { if(res == 'granted') bindSensorEngine(); });
+            } else { bindSensorEngine(); }
+        };
+
+        document.getElementById('guideSensorBtn').onclick = function() {
+            initSensors();
+            this.innerText = "✓ Sensoren aktiv";
+            this.style.background = "#444";
+        };
+
+        function bindSensorEngine() {
+            sensorActive = true;
+            window.addEventListener('devicemotion', (e) => {
+                if (!isRecording) return;
+                let acc = e.acceleration || e.accelerationIncludingGravity;
+                if(!acc || acc.x === null) return;
+                let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+                let val = Math.abs(total - 9.81);
+                accelerationData.push(val);
+            });
+        }
+
+        // TRAIL AUFNAHME START/STOPP
+        document.getElementById('mainBtn').onclick = function() {
+            if (!sensorActive) { initSensors(); }
+            if (!isRecording) {
+                accelerationData = []; // Daten-Reset vor dem Start!
+                isRecording = true;
+                this.classList.add('record');
+                this.innerText = "AUFNAHME LÄUFT... STOPP";
+            } else {
+                isRecording = false;
+                this.classList.remove('record');
+                this.innerText = "START AUFNAHME";
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('feedback-modal').style.display = 'block';
+            }
         };
 
         function lowPassFilter(data, alpha) {
@@ -195,75 +231,14 @@
             return filtered;
         }
 
-        function activate() {
-            document.getElementById('reqBtn').style.display = 'none';
-            document.getElementById('mainBtn').style.display = 'block';
-            window.addEventListener('devicemotion', (e) => {
-                if (!isRecording) return;
-                let acc = e.acceleration || e.accelerationIncludingGravity;
-                let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-                let val = Math.abs(total - 9.81);
-                accelerationData.push(val);
-                document.getElementById('mainBtn').innerText = `STOPP (${accelerationData.length})`;
-            });
-        }
-
-        document.getElementById('mainBtn').onclick = function() {
-            if (!isRecording) {
-                accelerationData = [];
-                isRecording = true;
-                this.classList.add('record');
-            } else {
-                isRecording = false;
-                this.classList.remove('record');
-                this.innerText = "START AUFNAHME";
-                document.getElementById('setup-area').style.display = 'none';
-                document.getElementById('feedback-modal').style.display = 'block';
-            }
-        };
-
-        function finalizeSave() {
-            if(accelerationData.length < 10) { alert("Zu wenig Daten!"); return; }
-            let filteredTrailData = lowPassFilter(accelerationData, 0.3);
-
-            let lowSpeedEnergy = 0;
-            let highSpeedEnergy = 0;
-            for(let i = 1; i < filteredTrailData.length; i++) {
-                let diff = Math.abs(filteredTrailData[i] - filteredTrailData[i-1]);
-                if (diff > 4.5) highSpeedEnergy += diff;
-                else if (diff > 0.5) lowSpeedEnergy += diff;
-            }
-
-            const run = {
-                id: Date.now(),
-                date: new Date().toLocaleString('de-DE'),
-                name: document.getElementById('runName').value || "Lauf",
-                setup: { psi: document.getElementById('springVal').value, lsr: document.getElementById('lsrVal').value },
-                feedback: { 
-                    grip: document.getElementById('rate-grip').value, 
-                    arm: document.getElementById('rate-arm').value,
-                    msg: document.getElementById('run-comment').value 
-                },
-                raw: [...accelerationData],
-                data: filteredTrailData.map(v => parseFloat(v.toFixed(2))),
-                analysis: { ls: lowSpeedEnergy, hs: highSpeedEnergy, verhaeltnis: highSpeedEnergy / (lowSpeedEnergy || 1) }
-            };
-
-            let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
-            runs.push(run);
-            localStorage.setItem('mtb_runs', JSON.stringify(runs));
-            
-            document.getElementById('feedback-modal').style.display = 'none';
-            document.getElementById('setup-area').style.display = 'block';
-            showPage('archive');
-        }
-
-        // BORDSTEIN REBOUND TEST LOGIK (INTEGRIERT)
+        // BORDSTEIN REBOUND TEST
         document.getElementById('reboundStartBtn').onclick = function() {
-            this.innerText = "MESSUNG LÄUFT...";
+            if (!sensorActive) { alert("Bitte zuerst im Schritt 1 die Sensoren aktivieren!"); return; }
+            this.innerText = "JETZT VOM BORDSTEIN ROLLEN...";
             this.classList.add('record');
             accelerationData = [];
             isRecording = true;
+            
             setTimeout(() => {
                 isRecording = false;
                 this.innerText = "Bordstein-Test Starten (3s)";
@@ -274,26 +249,103 @@
 
         function processReboundTest() {
             if(accelerationData.length < 15) {
-                document.getElementById('reboundResult').innerText = "Keine Daten. Nochmal versuchen.";
+                document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte. Blieb das Handy im Lock-Screen?";
                 return;
             }
-            let clean = lowPassFilter(accelerationData, 0.08); // Noch etwas aggressiverer Filter (0.08 statt 0.1)
+            let clean = lowPassFilter(accelerationData, 0.1);
             let osc = 0;
             let lastPeakIdx = 0;
+            
             const maxVal = Math.max(...clean);
-            const triggerThreshold = maxVal * 0.40; // Filtergrenze leicht angehoben auf 40%
+            // Gegen Handzittern: Wenn die maximale Amplitude unter 1.5 m/s² liegt, stand das Handy still.
+            if(maxVal < 1.5) {
+                document.getElementById('reboundResult').innerHTML = "Ergebnis: 0 Schwingungen.<br><span style='color:#28a745;'>✓ Perfekt ruhig gehalten oder keine Bewegung erkannt.</span>";
+                return;
+            }
+
+            const triggerThreshold = maxVal * 0.35; 
 
             for(let i = 1; i < clean.length - 1; i++) {
                 if(clean[i] > triggerThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
-                    if(i - lastPeakIdx > 18) { // Längere Totzeit (18 Frames), blockiert Doppelzählungen komplett
+                    if(i - lastPeakIdx > 15) { 
                         osc++;
                         lastPeakIdx = i;
                     }
                 }
             }
-            let realOsc = Math.max(0, osc - 1);
-            let advice = realOsc === 0 ? "✅ Stabil!" : realOsc === 1 ? "🟡 Optimal für Renneinsatz." : `🐢 Zu schnell! (${realOsc} Hübe). LSR weiter SCHLIESSEN (-)`;
+            let realOsc = Math.max(0, osc - 1); // Den ersten harten Einschlag abziehen
+            let advice = realOsc === 0 ? "✅ Optimal dämpfend!" : realOsc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${realOsc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
             document.getElementById('reboundResult').innerHTML = `Ergebnis: ${realOsc} Schwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
+        }
+
+        // ECHTE INLINE-FFT IMPLEMENTIERUNG (Frequenzzerlegung)
+        function computeInlineFFT(samples) {
+            let N = samples.length;
+            // FFT verlangt Zweierpotenzen. Wenn nicht vorhanden, schneiden wir für die Mathematik ab.
+            let powerOfTwo = Math.pow(2, Math.floor(Math.log2(N)));
+            if (powerOfTwo < 8) return { lowSpeed: 0, highSpeed: 0 };
+            
+            let data = samples.slice(0, powerOfTwo);
+            let lowEnergy = 0;
+            let highEnergy = 0;
+            
+            // Diskrete Fourier-Transformation (Magnitude-Approximation für Performance auf Handys)
+            for (let k = 1; k < powerOfTwo / 2; k++) {
+                let real = 0;
+                let imag = 0;
+                for (let n = 0; n < powerOfTwo; n++) {
+                    let angle = (2 * Math.PI * k * n) / powerOfTwo;
+                    real += data[n] * Math.cos(angle);
+                    imag -= data[n] * Math.sin(angle);
+                }
+                let magnitude = Math.sqrt(real*real + imag*imag) / powerOfTwo;
+                
+                // Zuordnung basierend auf typischer Handy-Abtastrate (~60Hz)
+                if (k < powerOfTwo * 0.15) { // Niedrige Frequenzen (Fahrerbewegung, Kompression)
+                    lowEnergy += magnitude;
+                } else if (k < powerOfTwo * 0.45) { // Hohe Frequenzen (Wurzeln, Vibrationen)
+                    highEnergy += magnitude;
+                }
+            }
+            return { lowSpeed: lowEnergy * 10, highSpeed: highEnergy * 10 };
+        }
+
+        function finalizeSave() {
+            if(accelerationData.length < 20) { alert("Aufnahme zu kurz für Analyse!"); return; }
+            
+            let fftResult = computeInlineFFT(accelerationData);
+            let filteredTrailData = lowPassFilter(accelerationData, 0.25);
+
+            const run = {
+                id: Date.now(),
+                date: new Date().toLocaleString('de-DE'),
+                name: document.getElementById('runName').value || "Trail-Segment",
+                setup: { 
+                    psi: document.getElementById('springVal').value, 
+                    lsr: document.getElementById('lsrVal').value,
+                    hsc: document.getElementById('hscVal').value,
+                    lsc: document.getElementById('lscVal').value
+                },
+                feedback: { 
+                    grip: document.getElementById('rate-grip').value, 
+                    arm: document.getElementById('rate-arm').value,
+                    msg: document.getElementById('run-comment').value 
+                },
+                data: filteredTrailData.map(v => parseFloat(v.toFixed(2))),
+                analysis: { 
+                    ls: fftResult.lowSpeed, 
+                    hs: fftResult.highSpeed, 
+                    verhaeltnis: fftResult.highSpeed / (fftResult.lowSpeed || 1) 
+                }
+            };
+
+            let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
+            runs.push(run);
+            localStorage.setItem('mtb_runs', JSON.stringify(runs));
+            
+            document.getElementById('feedback-modal').style.display = 'none';
+            document.getElementById('setup-area').style.display = 'block';
+            showPage('archive');
         }
 
         function renderArchive() {
@@ -306,7 +358,7 @@
                 item.innerHTML = `
                     <button class="delete-btn" onclick="deleteRun(${run.id}); event.stopPropagation();">×</button>
                     <b>${run.name}</b><br>
-                    <small>${run.date} | PSI: ${run.setup.psi} | LSR: ${run.setup.lsr}</small>
+                    <small>${run.date} | PSI: ${run.setup.psi} | LSR: ${run.setup.lsr} | LSC: ${run.setup.lsc} | HSC: ${run.setup.hsc}</small>
                 `;
                 item.onclick = () => openFullscreenChart(run);
                 list.appendChild(item);
@@ -318,37 +370,49 @@
             const ctx = document.getElementById('myChart').getContext('2d');
             if(chart) chart.destroy();
             
+            Chart.defaults.color = '#aaa';
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: run.data.map((_, i) => i),
+                    labels: run.data.map((_, i) => (i / 50).toFixed(1) + "s"), // Näherungswert für Zeitachse bei 50Hz
                     datasets: [{
-                        label: `${run.name} (Gefiltert)`,
+                        label: `${run.name} (Vibrationen)`,
                         data: run.data,
                         borderColor: '#007bff',
-                        borderWidth: 2,
+                        borderWidth: 1.5,
                         pointRadius: 0,
                         fill: false
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { y: { beginAtZero: true }, x: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    animation: false, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            title: { display: true, text: 'G-Kraft (Abweichung von Erdbeschleunigung)', color: '#007bff' }
+                        }, 
+                        x: { 
+                            title: { display: true, text: 'Zeitdauer des Testlaufs (Sekunden)', color: '#aaa' }
+                        } 
+                    } 
+                }
             });
 
             let Empfehlung = "";
-            if (run.analysis) {
-                let ratio = run.analysis.verhaeltnis;
-                if(ratio > 1.8) {
-                    Empfehlung = "💡 <b>HSC-Fokus:</b> Hohe High-Speed Energie gemessen. Falls sich das Fahrwerk auf Wurzeln harsch anfühlt, Druckstufe leicht öffnen oder Token entfernen.";
-                } else if(ratio < 0.6) {
-                    Empfehlung = "💡 <b>LSC-Fokus:</b> Viel Bewegung im Low-Speed Bereich. Wenn das Rad in Anliegern wegsackt, Low-Speed Druckstufe (LSC) leicht schließen oder PSI erhöhen.";
-                } else {
-                    Empfehlung = "💡 <b>Ausgewogenes Verhältnis:</b> High-Speed und Low-Speed Schläge halten sich die Waage. Setup wirkt harmonisch.";
-                }
-            } else { Empfehlung = "Keine Frequenzdaten verfügbar."; }
+            let ratio = run.analysis.verhaeltnis;
+            if(ratio > 1.5) {
+                Empfehlung = `⚠️ <b>HSC Dämpfungs-Fokus (Verhältnis: ${ratio.toFixed(2)}):</b> Sehr hohe hochfrequente Schwingungen. Wenn sich das Fahrwerk bei schnellen Wurzeln harsch anfühlt, öffne die HSC um 1-2 Klicks Richtung (-).`;
+            } else if(ratio < 0.4 && ratio > 0) {
+                Empfehlung = `⚠️ <b>LSC Dämpfungs-Fokus (Verhältnis: ${ratio.toFixed(2)}):</b> Starke wellige Bewegungen. Wenn das Bike beim Bremsen oder in Anliegern stark wegsackt, schließe die LSC um 2 Klicks Richtung (+).`;
+            } else {
+                Empfehlung = `✅ <b>Harmonische Balance (Verhältnis: ${ratio.toFixed(2)}):</b> Die FFT-Analyse zeigt ein ausgewogenes Verhältnis zwischen schnellen Schlägen und langsamer Gewichtsverlagerung.`;
+            }
 
             document.getElementById('compareDetails').innerHTML = `
-                <b>Setup-Analyse (FFT-Ersatz):</b><br>${Empfehlung}<br>
-                <span style="font-size:0.8em; color:#aaa; display:block; margin-top:5px;">Kommentar: "${run.feedback.msg || 'Kein Eintrag'}"</span>
+                <b>FFT Frequenz-Auswertung:</b><br>${Empfehlung}<br>
+                <small style="color: #aaa;">Low-Speed Energie: ${run.analysis.ls.toFixed(1)} | High-Speed Energie: ${run.analysis.hs.toFixed(1)}</small>
             `;
         }
 
