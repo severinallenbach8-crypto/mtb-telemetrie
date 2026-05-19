@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTB Setup Lab v3</title>
+    <title>MTB Telemetrie Pro v5</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,37 +12,104 @@
         .card { background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; text-align: left; }
         h2, h3 { text-align: center; color: #007bff; margin: 5px 0; }
         .tab-bar { display: flex; gap: 2px; margin-bottom: 15px; background: #333; border-radius: 10px; overflow: hidden; }
-        .tab-btn { flex: 1; padding: 12px; background: #333; border: none; color: white; cursor: pointer; }
+        .tab-btn { flex: 1; padding: 12px; background: #333; border: none; color: white; cursor: pointer; font-size: 0.9em; }
         .tab-btn.active { background: #007bff; font-weight: bold; }
         label { display: block; margin-top: 10px; font-size: 0.75em; color: #aaa; text-transform: uppercase; }
-        input, textarea { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; }
-        button.main-action { background: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 15px; }
+        input, textarea, select { width: 100%; padding: 10px; margin-top: 4px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; }
+        button.main-action { background: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; }
         .record { background: #dc3545 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         .archive-item { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85em; border-left: 4px solid #444; position: relative; }
         .delete-btn { position: absolute; right: 10px; top: 10px; color: #dc3545; font-size: 1.2em; border: none; background: none; }
-        #chart-container { background: white; border-radius: 8px; margin-top: 10px; height: 300px; width: 100%; position: relative; display: none; }
-        .feedback-box { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; font-style: italic; color: #ddd; }
+        
+        .fullscreen-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #121212; z-index: 9999; padding: 10px; box-sizing: border-box; }
+        .close-fullscreen { position: absolute; top: 10px; right: 15px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 1.2em; font-weight: bold; z-index: 10000; }
+        .chart-wrapper { width: 100%; height: calc(100% - 150px); margin-top: 35px; background: white; border-radius: 8px; }
+        .analysis-box { background: #222; color: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.85em; text-align: left; border-left: 4px solid #007bff; }
+        
+        /* Guide-spezifisch */
+        .step-indicator { display: flex; justify-content: space-between; font-size: 0.75em; color: #666; margin-bottom: 15px; padding: 0 5px; }
+        .step-indicator .active-step { color: #007bff; font-weight: bold; }
+        .guide-nav { display: flex; gap: 10px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <h2>MTB Setup Lab 🚲</h2>
+    <h2>MTB Telemetrie Pro 🚲</h2>
 
     <div class="tab-bar">
-        <button onclick="showPage('measure')" id="btn-measure" class="tab-btn active">Trail</button>
-        <button onclick="showPage('rebound')" id="btn-rebound" class="tab-btn">Rebound</button>
+        <button onclick="showPage('guide')" id="btn-guide" class="tab-btn active">Setup-Guide</button>
+        <button onclick="showPage('measure')" id="btn-measure" class="tab-btn">Trail-Test</button>
         <button onclick="showPage('archive')" id="btn-archive" class="tab-btn">Archiv</button>
     </div>
 
+    <!-- SEITE: GEFÜHRTER SETUP-GUIDE -->
+    <div id="page-guide">
+        <div class="step-indicator">
+            <span id="ind-1" class="active-step">1. Offen</span>
+            <span id="ind-2">2. SAG</span>
+            <span id="ind-3">3. Rebound</span>
+            <span id="ind-4">4. HSC</span>
+            <span id="ind-5">5. LSC</span>
+        </div>
+
+        <!-- SCHRITT 1 -->
+        <div id="step-card-1" class="card">
+            <h3>Schritt 1: Dämpfung komplett öffnen</h3>
+            <p>Drehe alle Klicks an deiner Gabel und deinem Dämpfer komplett auf das **Minus-Symbol (-)** bzw. gegen den Uhrzeigersinn.</p>
+            <p style="color: #aaa; font-size: 0.85em;">Warum? Damit Ölventile den Luftdruck-Test (SAG) im nächsten Schritt nicht verfälschen.</p>
+        </div>
+
+        <!-- SCHRITT 2 -->
+        <div id="step-card-2" class="card" style="display:none;">
+            <h3>Schritt 2: SAG (Negativfederweg) einstellen</h3>
+            <p>Gehe in voller Montur auf dein Bike, gehe kurz in die Knie und nimm die normale Abfahrtshaltung im Stehen ein. Schiebe den O-Ring an der Gabel ganz nach unten. Steige vorsichtig ab.</p>
+            <label>Gemessener SAG (Richtwert: 15-20% Gabel)</label>
+            <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                <input type="number" id="guide-psi" value="80" style="flex:2;" placeholder="Druck in PSI">
+                <span style="line-height:40px;">PSI</span>
+            </div>
+            <p style="color: #aaa; font-size: 0.85em;">Zu viel SAG? Mehr PSI pumpen. Zu wenig SAG? Luft ablassen.</p>
+        </div>
+
+        <!-- SCHRITT 3 -->
+        <div id="step-card-3" class="card" style="display:none;">
+            <h3>Schritt 3: Rebound (Zugstufe) einstellen</h3>
+            <p>Rolle im Stehen flach von einer Bordsteinkante und bleibe ruhig im Sattel/auf den Pedalen stehen. Die App misst die Schwingungen.</p>
+            <button id="reboundStartBtn" class="main-action" style="background:#6f42c1; margin-top:5px;">Bordstein-Test Starten (3s)</button>
+            <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold;"></div>
+            <p style="color: #aaa; font-size: 0.85em; margin-top: 10px;">Ziel: 0 bis maximal 1 Nachschwingung. Drehe das Rebound-Rädchen bei Bedarf Klick für Klick Richtung (+) zu.</p>
+        </div>
+
+        <!-- SCHRITT 4 -->
+        <div id="step-card-4" class="card" style="display:none;">
+            <h3>Schritt 4: High-Speed Compression (HSC)</h3>
+            <p>Fahre jetzt eine kurze Testsequenz auf deinem Trail. Suche dir ein Teilstück mit harten Schlägen (Wurzeln, Steine, Absätze).</p>
+            <p>Wechsle dafür oben auf den Reiter <b>"Trail-Test"</b>, mache eine Aufnahme und kehre danach hierher zurück, um das Feedback zu sehen.</p>
+        </div>
+
+        <!-- SCHRITT 5 -->
+        <div id="step-card-5" class="card" style="display:none;">
+            <h3>Schritt 5: Low-Speed Compression (LSC)</h3>
+            <p>Der letzte Feinschliff: Achte beim Fahren darauf, ob das Bike bei Gewichtsverlagerungen, in Anliegerkurven oder beim harten Anbremsen zu stark wegsackt ("Eintauchen").</p>
+            <p style="color: #aaa; font-size: 0.85em;">Falls ja: Schließe die LSC (Low-Speed-Druckstufe) um 2 Klicks in Richtung (+). Das bringt Gegenhalt und Stabilität.</p>
+            <h3 style="color: #28a745; margin-top: 20px;">🎉 Grundsetup abgeschlossen!</h3>
+        </div>
+
+        <div class="guide-nav">
+            <button id="guide-prev" class="main-action" style="background:#444; display:none;" onclick="moveStep(-1)">Zurück</button>
+            <button id="guide-next" class="main-action" onclick="moveStep(1)">Verstanden / Weiter</button>
+        </div>
+    </div>
+
     <!-- SEITE: TRAIL AUFNAHME -->
-    <div id="page-measure">
+    <div id="page-measure" style="display:none;">
         <div class="card" id="setup-area">
             <h3>Lauf-Konfiguration</h3>
             <input type="text" id="runName" placeholder="Trail Name...">
             <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label>PSI</label><input type="number" id="springVal" value="80"></div>
-                <div style="flex:1;"><label>LSR</label><input type="number" id="lsrVal" value="5"></div>
+                <div style="flex:1;"><label>PSI (aus Schritt 2)</label><input type="number" id="springVal" value="80"></div>
+                <div style="flex:1;"><label>Klicks LSR (Zugstufe)</label><input type="number" id="lsrVal" value="5"></div>
             </div>
             <button id="reqBtn" class="main-action">1. Sensoren aktivieren</button>
             <button id="mainBtn" class="main-action" style="display:none;">START AUFNAHME</button>
@@ -56,30 +123,29 @@
             <input type="range" id="rate-arm" min="1" max="5" value="1">
             <label>Kommentar</label>
             <textarea id="run-comment" rows="2"></textarea>
-            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Speichern</button>
-        </div>
-    </div>
-
-    <!-- SEITE: REBOUND TEST -->
-    <div id="page-rebound" style="display:none;">
-        <div class="card">
-            <h3>Bordstein-Assistent</h3>
-            <button id="reboundStartBtn" class="main-action" style="background:#6f42c1;">Test Starten (3s)</button>
-            <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold;"></div>
+            <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Speichern & Analysieren</button>
         </div>
     </div>
 
     <!-- SEITE: ARCHIV -->
     <div id="page-archive" style="display:none;">
-        <div id="chart-container"><canvas id="myChart"></canvas></div>
-        <div id="compareDetails"></div>
-        <div id="archive-list" style="margin-top: 15px;"></div>
+        <div id="archive-list"></div>
+    </div>
+
+    <!-- FULLSCREEN CHART OVERLAY -->
+    <div id="fullscreenModal" class="fullscreen-overlay">
+        <button class="close-fullscreen" onclick="closeFullscreen()">×</button>
+        <div class="chart-wrapper">
+            <canvas id="myChart"></canvas>
+        </div>
+        <div id="compareDetails" class="analysis-box"></div>
     </div>
 
     <script>
         let accelerationData = [];
         let isRecording = false;
         let chart = null;
+        let currentStep = 1;
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
@@ -88,12 +154,29 @@
         function showPage(page) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn-' + page).classList.add('active');
+            document.getElementById('page-guide').style.display = page === 'guide' ? 'block' : 'none';
             document.getElementById('page-measure').style.display = page === 'measure' ? 'block' : 'none';
-            document.getElementById('page-rebound').style.display = page === 'rebound' ? 'block' : 'none';
             document.getElementById('page-archive').style.display = page === 'archive' ? 'block' : 'none';
-            if(page === 'archive') {
-                document.getElementById('chart-container').style.display = 'none';
-                renderArchive();
+            if(page === 'archive') { closeFullscreen(); renderArchive(); }
+        }
+
+        // NAVIGATION FÜR DEN SETUP-GUIDE
+        function moveStep(direction) {
+            document.getElementById(`step-card-${currentStep}`).style.display = 'none';
+            document.getElementById(`ind-${currentStep}`).classList.remove('active-step');
+            
+            currentStep += direction;
+            
+            document.getElementById(`step-card-${currentStep}`).style.display = 'block';
+            document.getElementById(`ind-${currentStep}`).classList.add('active-step');
+            
+            // Buttons anpassen
+            document.getElementById('guide-prev').style.display = currentStep > 1 ? 'block' : 'none';
+            document.getElementById('guide-next').style.display = currentStep < 5 ? 'block' : 'none';
+            
+            // Wertübergabe von Schritt 2 zu Trail-Konfiguration automatisch synchronsieren
+            if(currentStep === 3) {
+                document.getElementById('springVal').value = document.getElementById('guide-psi').value;
             }
         }
 
@@ -103,6 +186,15 @@
             } else { activate(); }
         };
 
+        function lowPassFilter(data, alpha) {
+            if (data.length === 0) return [];
+            let filtered = [data[0]];
+            for (let i = 1; i < data.length; i++) {
+                filtered.push(filtered[i - 1] + alpha * (data[i] - filtered[i - 1]));
+            }
+            return filtered;
+        }
+
         function activate() {
             document.getElementById('reqBtn').style.display = 'none';
             document.getElementById('mainBtn').style.display = 'block';
@@ -111,10 +203,8 @@
                 let acc = e.acceleration || e.accelerationIncludingGravity;
                 let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
                 let val = Math.abs(total - 9.81);
-                if(val > 0.4) {
-                    accelerationData.push(parseFloat(val.toFixed(2)));
-                    document.getElementById('mainBtn').innerText = `STOPP (${accelerationData.length})`;
-                }
+                accelerationData.push(val);
+                document.getElementById('mainBtn').innerText = `STOPP (${accelerationData.length})`;
             });
         }
 
@@ -133,19 +223,30 @@
         };
 
         function finalizeSave() {
-            if(accelerationData.length < 5) { alert("Zu wenig Daten!"); return; }
-            
+            if(accelerationData.length < 10) { alert("Zu wenig Daten!"); return; }
+            let filteredTrailData = lowPassFilter(accelerationData, 0.3);
+
+            let lowSpeedEnergy = 0;
+            let highSpeedEnergy = 0;
+            for(let i = 1; i < filteredTrailData.length; i++) {
+                let diff = Math.abs(filteredTrailData[i] - filteredTrailData[i-1]);
+                if (diff > 4.5) highSpeedEnergy += diff;
+                else if (diff > 0.5) lowSpeedEnergy += diff;
+            }
+
             const run = {
                 id: Date.now(),
                 date: new Date().toLocaleString('de-DE'),
-                name: document.getElementById('runName').value || "Unbenannt",
+                name: document.getElementById('runName').value || "Lauf",
                 setup: { psi: document.getElementById('springVal').value, lsr: document.getElementById('lsrVal').value },
                 feedback: { 
                     grip: document.getElementById('rate-grip').value, 
                     arm: document.getElementById('rate-arm').value,
                     msg: document.getElementById('run-comment').value 
                 },
-                data: [...accelerationData]
+                raw: [...accelerationData],
+                data: filteredTrailData.map(v => parseFloat(v.toFixed(2))),
+                analysis: { ls: lowSpeedEnergy, hs: highSpeedEnergy, verhaeltnis: highSpeedEnergy / (lowSpeedEnergy || 1) }
             };
 
             let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
@@ -157,45 +258,42 @@
             showPage('archive');
         }
 
-        // REBOUND TEST MIT STARKER GLÄTTUNG
+        // BORDSTEIN REBOUND TEST LOGIK (INTEGRIERT)
         document.getElementById('reboundStartBtn').onclick = function() {
-            this.innerText = "MESSUNG...";
+            this.innerText = "MESSUNG LÄUFT...";
             this.classList.add('record');
             accelerationData = [];
             isRecording = true;
             setTimeout(() => {
                 isRecording = false;
-                this.innerText = "Test Starten (3s)";
+                this.innerText = "Bordstein-Test Starten (3s)";
                 this.classList.remove('record');
                 processReboundTest();
             }, 3000);
         };
 
         function processReboundTest() {
-            if(accelerationData.length < 10) {
-                document.getElementById('reboundResult').innerText = "Fehler: Keine Bewegung erkannt.";
+            if(accelerationData.length < 15) {
+                document.getElementById('reboundResult').innerText = "Keine Daten. Nochmal versuchen.";
                 return;
             }
-
-            // 1. Glättung: Gleitender Durchschnitt über 5 Werte
-            let smoothed = [];
-            for(let i=2; i<accelerationData.length-2; i++) {
-                let avg = (accelerationData[i-2]+accelerationData[i-1]+accelerationData[i]+accelerationData[i+1]+accelerationData[i+2])/5;
-                smoothed.push(avg);
-            }
-
-            // 2. Peaks zählen (nur deutliche Amplituden)
+            let clean = lowPassFilter(accelerationData, 0.08); // Noch etwas aggressiverer Filter (0.08 statt 0.1)
             let osc = 0;
-            const threshold = Math.max(...smoothed) * 0.4;
-            for(let i=1; i<smoothed.length-1; i++) {
-                if(smoothed[i] > threshold && smoothed[i] > smoothed[i-1] && smoothed[i] > smoothed[i+1]) {
-                    osc++;
+            let lastPeakIdx = 0;
+            const maxVal = Math.max(...clean);
+            const triggerThreshold = maxVal * 0.40; // Filtergrenze leicht angehoben auf 40%
+
+            for(let i = 1; i < clean.length - 1; i++) {
+                if(clean[i] > triggerThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
+                    if(i - lastPeakIdx > 18) { // Längere Totzeit (18 Frames), blockiert Doppelzählungen komplett
+                        osc++;
+                        lastPeakIdx = i;
+                    }
                 }
             }
-
-            let realOsc = Math.max(0, osc - 1); // Erster Einschlag abziehen
-            let advice = realOsc === 0 ? "✅ Stabil!" : realOsc === 1 ? "🟡 Okay." : `🐢 Zu schnell! (${realOsc} Hübe)`;
-            document.getElementById('reboundResult').innerHTML = `Gefundene Schwingungen: ${realOsc}<br>${advice}`;
+            let realOsc = Math.max(0, osc - 1);
+            let advice = realOsc === 0 ? "✅ Stabil!" : realOsc === 1 ? "🟡 Optimal für Renneinsatz." : `🐢 Zu schnell! (${realOsc} Hübe). LSR weiter SCHLIESSEN (-)`;
+            document.getElementById('reboundResult').innerHTML = `Ergebnis: ${realOsc} Schwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
         }
 
         function renderArchive() {
@@ -207,15 +305,16 @@
                 item.className = 'archive-item';
                 item.innerHTML = `
                     <button class="delete-btn" onclick="deleteRun(${run.id}); event.stopPropagation();">×</button>
-                    <b>${run.name}</b><br><small>${run.date} | PSI: ${run.setup.psi}</small>
+                    <b>${run.name}</b><br>
+                    <small>${run.date} | PSI: ${run.setup.psi} | LSR: ${run.setup.lsr}</small>
                 `;
-                item.onclick = () => renderSingleChart(run);
+                item.onclick = () => openFullscreenChart(run);
                 list.appendChild(item);
             });
         }
 
-        function renderSingleChart(run) {
-            document.getElementById('chart-container').style.display = 'block';
+        function openFullscreenChart(run) {
+            document.getElementById('fullscreenModal').style.display = 'block';
             const ctx = document.getElementById('myChart').getContext('2d');
             if(chart) chart.destroy();
             
@@ -224,7 +323,7 @@
                 data: {
                     labels: run.data.map((_, i) => i),
                     datasets: [{
-                        label: 'g-Kraft',
+                        label: `${run.name} (Gefiltert)`,
                         data: run.data,
                         borderColor: '#007bff',
                         borderWidth: 2,
@@ -232,16 +331,28 @@
                         fill: false
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    scales: { y: { beginAtZero: true, grid: { color: '#444' } }, x: { display: false } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { y: { beginAtZero: true }, x: { display: false } } }
             });
-            window.scrollTo(0,0);
+
+            let Empfehlung = "";
+            if (run.analysis) {
+                let ratio = run.analysis.verhaeltnis;
+                if(ratio > 1.8) {
+                    Empfehlung = "💡 <b>HSC-Fokus:</b> Hohe High-Speed Energie gemessen. Falls sich das Fahrwerk auf Wurzeln harsch anfühlt, Druckstufe leicht öffnen oder Token entfernen.";
+                } else if(ratio < 0.6) {
+                    Empfehlung = "💡 <b>LSC-Fokus:</b> Viel Bewegung im Low-Speed Bereich. Wenn das Rad in Anliegern wegsackt, Low-Speed Druckstufe (LSC) leicht schließen oder PSI erhöhen.";
+                } else {
+                    Empfehlung = "💡 <b>Ausgewogenes Verhältnis:</b> High-Speed und Low-Speed Schläge halten sich die Waage. Setup wirkt harmonisch.";
+                }
+            } else { Empfehlung = "Keine Frequenzdaten verfügbar."; }
+
+            document.getElementById('compareDetails').innerHTML = `
+                <b>Setup-Analyse (FFT-Ersatz):</b><br>${Empfehlung}<br>
+                <span style="font-size:0.8em; color:#aaa; display:block; margin-top:5px;">Kommentar: "${run.feedback.msg || 'Kein Eintrag'}"</span>
+            `;
         }
 
+        function closeFullscreen() { document.getElementById('fullscreenModal').style.display = 'none'; }
         function deleteRun(id) {
             let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
             localStorage.setItem('mtb_runs', JSON.stringify(runs.filter(r => r.id !== id)));
