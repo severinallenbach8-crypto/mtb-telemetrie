@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTB Telemetrie Pro v6</title>
+    <title>MTB Telemetrie Pro v6.1</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,7 +42,6 @@
         <button onclick="showPage('archive')" id="btn-archive" class="tab-btn">Archiv</button>
     </div>
 
-    <!-- SEITE: GEFÜHRTER SETUP-GUIDE -->
     <div id="page-guide">
         <div class="step-indicator">
             <span id="ind-1" class="active-step">1. Offen</span>
@@ -52,7 +51,6 @@
             <span id="ind-5">5. LSC</span>
         </div>
 
-        <!-- SCHRITT 1 -->
         <div id="step-card-1" class="card">
             <h3>Schritt 1: Sensoren & Offene Ventile</h3>
             <p>Zuerst müssen wir dem Browser Zugriff auf die Bewegungssensoren erlauben:</p>
@@ -60,11 +58,10 @@
             <p>Drehe danach alle Klicks an Gabel und Dämpfer komplett auf das **Minus-Symbol (-)** bzw. gegen den Uhrzeigersinn (vollständig offen).</p>
         </div>
 
-        <!-- SCHRITT 2 -->
         <div id="step-card-2" class="card" style="display:none;">
             <h3>Schritt 2: SAG (Negativfederweg)</h3>
             <p>Zieh deine Bike-Klamotten an. Geh in die "Angriffsposition" (stehend auf den Pedalen). Schiebe die O-Ringe an den Elementen ganz ran und steige vorsichtig ab.</p>
-            <p><b>Richtwerte für optimalen Negativfederweg:</b><br>• Federgabel: 15% – 20% des Gesamtfederwegs<br>• Dämpfer (Heck): 25% – 30% des Gesamtfederwegs</p>
+            <p><b>Richtwerte für optimalen Negativfederweg (im Stehen gemessen):</b><br>• Federgabel: 25% – 30% des Gesamtfederwegs<br>• Dämpfer (Heck): 25% – 30% des Gesamtfederwegs</p>
             <label>Eingestellter Luftdruck für den Testlauf</label>
             <div style="display:flex; gap:10px;">
                 <input type="number" id="guide-psi" value="80" style="flex:2;">
@@ -72,7 +69,6 @@
             </div>
         </div>
 
-        <!-- SCHRITT 3 -->
         <div id="step-card-3" class="card" style="display:none;">
             <h3>Schritt 3: Rebound (Zugstufe)</h3>
             <p>Rolle im Stehen ruhig von einer Bordsteinkante und bleibe danach fest auf den Pedalen stehen. Die App filtert Handzittern heraus.</p>
@@ -80,13 +76,11 @@
             <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold; background: #2a2a2a; padding: 10px; border-radius: 8px;">Noch keine Messung durchgeführt.</div>
         </div>
 
-        <!-- SCHRITT 4 -->
         <div id="step-card-4" class="card" style="display:none;">
             <h3>Schritt 4: High-Speed Compression (HSC)</h3>
             <p>Wechsle oben auf den Reiter <b>"Trail-Test"</b>. Fahre ein ruppiges Stück Trail mit schnellen Schlägen (Wurzeln, Steine). Komm danach hierher zurück.</p>
         </div>
 
-        <!-- SCHRITT 5 -->
         <div id="step-card-5" class="card" style="display:none;">
             <h3>Schritt 5: Low-Speed Compression (LSC)</h3>
             <p>Achte beim Fahren darauf, ob das Bike beim harten Anbremsen oder in tiefen Kurvenkompressionen wegsackt. Falls ja, erhöhen wir im Trail-Test die LSC-Klicks.</p>
@@ -99,7 +93,6 @@
         </div>
     </div>
 
-    <!-- SEITE: TRAIL AUFNAHME -->
     <div id="page-measure" style="display:none;">
         <div class="card" id="setup-area">
             <h3>Lauf-Konfiguration</h3>
@@ -129,13 +122,11 @@
         </div>
     </div>
 
-    <!-- SEITE: ARCHIV -->
     <div id="page-archive" style="display:none;">
         <h3>Gespeicherte Testläufe</h3>
         <div id="archive-list"></div>
     </div>
 
-    <!-- FULLSCREEN CHART OVERLAY -->
     <div id="fullscreenModal" class="fullscreen-overlay">
         <button class="close-fullscreen" onclick="closeFullscreen()">×</button>
         <div class="chart-wrapper">
@@ -179,7 +170,6 @@
             }
         }
 
-        // ZENTRALE SENSOR-INITIALISIERUNG
         const initSensors = () => {
             if (sensorActive) return;
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -205,11 +195,10 @@
             });
         }
 
-        // TRAIL AUFNAHME START/STOPP
         document.getElementById('mainBtn').onclick = function() {
             if (!sensorActive) { initSensors(); }
             if (!isRecording) {
-                accelerationData = []; // Daten-Reset vor dem Start!
+                accelerationData = []; 
                 isRecording = true;
                 this.classList.add('record');
                 this.innerText = "AUFNAHME LÄUFT... STOPP";
@@ -231,7 +220,6 @@
             return filtered;
         }
 
-        // BORDSTEIN REBOUND TEST
         document.getElementById('reboundStartBtn').onclick = function() {
             if (!sensorActive) { alert("Bitte zuerst im Schritt 1 die Sensoren aktivieren!"); return; }
             this.innerText = "JETZT VOM BORDSTEIN ROLLEN...";
@@ -249,7 +237,7 @@
 
         function processReboundTest() {
             if(accelerationData.length < 15) {
-                document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte. Blieb das Handy im Lock-Screen?";
+                document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte.";
                 return;
             }
             let clean = lowPassFilter(accelerationData, 0.1);
@@ -257,7 +245,6 @@
             let lastPeakIdx = 0;
             
             const maxVal = Math.max(...clean);
-            // Gegen Handzittern: Wenn die maximale Amplitude unter 1.5 m/s² liegt, stand das Handy still.
             if(maxVal < 1.5) {
                 document.getElementById('reboundResult').innerHTML = "Ergebnis: 0 Schwingungen.<br><span style='color:#28a745;'>✓ Perfekt ruhig gehalten oder keine Bewegung erkannt.</span>";
                 return;
@@ -273,15 +260,13 @@
                     }
                 }
             }
-            let realOsc = Math.max(0, osc - 1); // Den ersten harten Einschlag abziehen
+            let realOsc = Math.max(0, osc - 1);
             let advice = realOsc === 0 ? "✅ Optimal dämpfend!" : realOsc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${realOsc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
             document.getElementById('reboundResult').innerHTML = `Ergebnis: ${realOsc} Schwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
         }
 
-        // ECHTE INLINE-FFT IMPLEMENTIERUNG (Frequenzzerlegung)
         function computeInlineFFT(samples) {
             let N = samples.length;
-            // FFT verlangt Zweierpotenzen. Wenn nicht vorhanden, schneiden wir für die Mathematik ab.
             let powerOfTwo = Math.pow(2, Math.floor(Math.log2(N)));
             if (powerOfTwo < 8) return { lowSpeed: 0, highSpeed: 0 };
             
@@ -289,7 +274,6 @@
             let lowEnergy = 0;
             let highEnergy = 0;
             
-            // Diskrete Fourier-Transformation (Magnitude-Approximation für Performance auf Handys)
             for (let k = 1; k < powerOfTwo / 2; k++) {
                 let real = 0;
                 let imag = 0;
@@ -300,10 +284,9 @@
                 }
                 let magnitude = Math.sqrt(real*real + imag*imag) / powerOfTwo;
                 
-                // Zuordnung basierend auf typischer Handy-Abtastrate (~60Hz)
-                if (k < powerOfTwo * 0.15) { // Niedrige Frequenzen (Fahrerbewegung, Kompression)
+                if (k < powerOfTwo * 0.15) { 
                     lowEnergy += magnitude;
-                } else if (k < powerOfTwo * 0.45) { // Hohe Frequenzen (Wurzeln, Vibrationen)
+                } else if (k < powerOfTwo * 0.45) { 
                     highEnergy += magnitude;
                 }
             }
@@ -374,7 +357,7 @@
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: run.data.map((_, i) => (i / 50).toFixed(1) + "s"), // Näherungswert für Zeitachse bei 50Hz
+                    labels: run.data.map((_, i) => (i / 50).toFixed(1) + "s"), 
                     datasets: [{
                         label: `${run.name} (Vibrationen)`,
                         data: run.data,
@@ -401,10 +384,12 @@
             });
 
             let Empfehlung = "";
-            let ratio = run.analysis.verhaeltnis;
-            if(ratio > 1.5) {
+            let ratio = run.analysis ? run.analysis.verhaeltnis : 0;
+            if(isNaN(ratio) || ratio === 0) {
+                Empfehlung = "ℹ️ <b>Zu wenig Dynamik:</b> Der Lauf war zu kurz oder zu ruhig für eine verlässliche FFT-Dämpfungsempfehlung.";
+            } else if(ratio > 1.5) {
                 Empfehlung = `⚠️ <b>HSC Dämpfungs-Fokus (Verhältnis: ${ratio.toFixed(2)}):</b> Sehr hohe hochfrequente Schwingungen. Wenn sich das Fahrwerk bei schnellen Wurzeln harsch anfühlt, öffne die HSC um 1-2 Klicks Richtung (-).`;
-            } else if(ratio < 0.4 && ratio > 0) {
+            } else if(ratio < 0.4) {
                 Empfehlung = `⚠️ <b>LSC Dämpfungs-Fokus (Verhältnis: ${ratio.toFixed(2)}):</b> Starke wellige Bewegungen. Wenn das Bike beim Bremsen oder in Anliegern stark wegsackt, schließe die LSC um 2 Klicks Richtung (+).`;
             } else {
                 Empfehlung = `✅ <b>Harmonische Balance (Verhältnis: ${ratio.toFixed(2)}):</b> Die FFT-Analyse zeigt ein ausgewogenes Verhältnis zwischen schnellen Schlägen und langsamer Gewichtsverlagerung.`;
@@ -412,7 +397,7 @@
 
             document.getElementById('compareDetails').innerHTML = `
                 <b>FFT Frequenz-Auswertung:</b><br>${Empfehlung}<br>
-                <small style="color: #aaa;">Low-Speed Energie: ${run.analysis.ls.toFixed(1)} | High-Speed Energie: ${run.analysis.hs.toFixed(1)}</small>
+                <small style="color: #aaa;">Low-Speed Energie: ${(run.analysis?.ls || 0).toFixed(1)} | High-Speed Energie: ${(run.analysis?.hs || 0).toFixed(1)}</small>
             `;
         }
 
