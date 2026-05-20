@@ -225,65 +225,83 @@
             }
         };
 
-        function lowPassFilter(data, alpha) {
-            if (data.length === 0) return [];
-            let filtered = [data[0]];
-            for (let i = 1; i < data.length; i++) {
-                filtered.push(filtered[i - 1] + alpha * (data[i] - filtered[i - 1]));
+// Butterworth-Filter 2. Ordnung (Tiefpass)
+// fc = Grenzfrequenz (20 Hz), fs = Abtastrate des Smartphones (ca. 50 Hz Standard)
+function butterworthLowPassFilter(data, fc = 20, fs = 50) {
+    if (data.length < 3) return data;
+
+    // Berechnung der Filterkoeffizienten
+    const ohm = Math.tan(Math.PI * fc / fs);
+    const c = 1.0 + 2.0 * Math.cos(Math.PI / 4.0) * ohm + ohm * ohm;
+    
+    const b0 = ohm * ohm / c;
+    const b1 = 2.0 * b0;
+    const b2 = b0;
+    const a1 = 2.0 * (ohm * ohm - 1.0) / c;
+    const a2 = (1.0 - 2.0 * Math.cos(Math.PI / 4.0) * ohm + ohm * ohm) / c;
+
+    let filtered = new Array(data.length);
+    
+    // Initialisierung der ersten beiden Punkte
+    filtered[0] = data[0];
+    filtered[1] = data[1];
+
+    // Filter-Schleife (Differenzengleichung)
+    for (let i = 2; i < data.length; i++) {
+        filtered[i] = b0 * data[i] + b1 * data[i-1] + b2 * data[i-2]
+                      - a1 * filtered[i-1] - a2 * filtered[i-2];
+    }
+
+    return filtered;
+}
+
+// OPTIMIERTE REBOUND-AUSWERTUNG MIT BUTTERWORTH
+function processReboundTest() {
+    if(accelerationData.length < 15) {
+        document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte.";
+        return;
+    }
+    
+    // Schätzung der realen Abtastrate (fs) deines Handys
+    // Die meisten Android-Geräte tasten im Browser mit ca. 50-60 Hz ab.
+    let fs = 50; 
+    
+    // 1. Anwendung des harten Butterworth-Filters bei 20Hz
+    let clean = butterworthLowPassFilter(accelerationData, 20, fs);
+    
+    // 2. Finde den Haupt-Schlag (Bordstein-Drop)
+    let maxVal = Math.max(...clean);
+    let mainImpactIdx = clean.indexOf(maxVal);
+
+    if(maxVal < 0.25) {
+        document.getElementById('reboundResult').innerHTML = "Kein eindeutiger Bordsteinschlag erkannt.<br><span style='color:#dc3545; font-size:0.85em;'>Bitte fahre etwas dynamischer von der Kante.</span>";
+        return;
+    }
+
+    // 3. Peak-Detections-Algorithmus mit zeitlicher Sperre (Hysterese)
+    // Nach dem Hauptschlag ignorieren wir die ersten 100ms, da hier das Fahrwerk noch komprimiert.
+    let minThreshold = Math.max(0.35, maxVal * 0.3); // Mindestens 0.35G oder 30% des Hauptschlags
+    let osc = 0;
+    let lastPeakIdx = mainImpactIdx;
+    
+    // Mindestabstand zwischen Schwingungen: Bei 50Hz sind 8 Samples = ~160ms.
+    // Ein MTB-Hinterbau schwingt im ungedämpften Zustand mit etwa 2-4 Hz nach.
+    let minSamplesBetweenPeaks = 8; 
+
+    for(let i = mainImpactIdx + minSamplesBetweenPeaks; i < clean.length - 1; i++) {
+        // Prüfen auf lokales Maximum
+        if(clean[i] > minThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
+            // Kam dieser Peak mit genügend zeitlichem Abstand zum letzten Peak?
+            if(i - lastPeakIdx > minSamplesBetweenPeaks) { 
+                osc++;
+                lastPeakIdx = i;
             }
-            return filtered;
         }
-
-        document.getElementById('reboundStartBtn').onclick = function() {
-            if (!sensorActive) { alert("Bitte zuerst im Schritt 1 die Sensoren aktivieren!"); return; }
-            this.innerText = "JETZT VOM BORDSTEIN ROLLEN...";
-            this.classList.add('record');
-            accelerationData = [];
-            isRecording = true;
-            
-            setTimeout(() => {
-                isRecording = false;
-                this.innerText = "Bordstein-Test Starten (3s)";
-                this.classList.remove('record');
-                processReboundTest();
-            }, 3000);
-        };
-
-        function processReboundTest() {
-            if(accelerationData.length < 15) {
-                document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte.";
-                return;
-            }
-            
-            // Glättung für die Impulserkennung
-            let clean = lowPassFilter(accelerationData, 0.15);
-            
-            // 1. Finde den Haupt-Schlag (die Landung des Reifens nach der Kante)
-            let maxVal = Math.max(...clean);
-            let mainImpactIdx = clean.indexOf(maxVal);
-
-            // Wenn der Gesamtimpuls extrem schwach war (< 0.15 G über Nullniveau)
-            if(maxVal < 0.15) {
-                document.getElementById('reboundResult').innerHTML = "Kein eindeutiger Bordsteinschlag erkannt.<br><span style='color:#dc3545; font-size:0.85em;'>Bitte fahre etwas dynamischer von der Kante.</span>";
-                return;
-            }
-
-            // 2. Suche nach echten Nachschwingungen ERST NACH dem Hauptschlag
-            // Ein Peak muss sich vom Rauschen abheben (Mindestwert: 0.4 G absolut ODER 35% des Hauptschlags)
-            let minThreshold = Math.max(0.4, maxVal * 0.35);
-            let osc = 0;
-            let lastPeakIdx = mainImpactIdx;
-            
-            for(let i = mainImpactIdx + 1; i < clean.length - 1; i++) {
-                // Lokales Maximum ermitteln
-                if(clean[i] > minThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
-                    // Zeitlicher Mindestabstand zwischen Peaks (Hysterese gegen Sensorflattern), ca. 150ms bei ~50Hz Abtastung
-                    if(i - lastPeakIdx > 8) { 
-                        osc++;
-                        lastPeakIdx = i;
-                    }
-                }
-            }
+    }
+    
+    let advice = osc === 0 ? "✅ Optimal dämpfend! Keine kritischen Nachschwingungen." : osc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${osc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
+    document.getElementById('reboundResult').innerHTML = `Ergebnis: ${osc} Nachschwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
+}
             
             let advice = osc === 0 ? "✅ Optimal dämpfend! Keine kritischen Nachschwingungen." : osc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${osc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
             document.getElementById('reboundResult').innerHTML = `Ergebnis: ${osc} Nachschwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
