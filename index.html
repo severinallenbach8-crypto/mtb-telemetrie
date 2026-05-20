@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTB Telemetrie Pro v6.2</title>
+    <title>MTB Telemetrie Pro v6.3</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -24,7 +24,7 @@
         
         .fullscreen-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #121212; z-index: 9999; padding: 10px; box-sizing: border-box; }
         .close-fullscreen { position: absolute; top: 10px; right: 15px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 1.2em; font-weight: bold; z-index: 10000; }
-        .chart-wrapper { width: 100%; height: calc(100% - 180px); margin-top: 35px; background: #1e1e1e; border-radius: 8px; padding: 5px; box-sizing: border-box; }
+        .chart-wrapper { width: 100%; height: calc(100% - 240px); margin-top: 35px; background: #1e1e1e; border-radius: 8px; padding: 5px; box-sizing: border-box; }
         .analysis-box { background: #222; color: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.85em; text-align: left; border-left: 4px solid #007bff; }
         
         .step-indicator { display: flex; justify-content: space-between; font-size: 0.75em; color: #666; margin-bottom: 15px; padding: 0 5px; }
@@ -52,19 +52,16 @@
             <span id="ind-5">5. LSC</span>
         </div>
 
-        <!-- SCHRITT 1 -->
         <div id="step-card-1" class="card">
             <h3>Schritt 1: Sensoren & Offene Ventile</h3>
             <p>Zuerst müssen wir dem Browser Zugriff auf die Bewegungssensoren erlauben:</p>
             <button id="guideSensorBtn" class="main-action" style="background: #28a745; margin-bottom: 15px;">1. Bewegungssensoren freigeben</button>
-            <p>Drehe danach alle Klicks an Gabel und Dämpfer komplett auf das **Minus-Symbol (-)** bzw. gegen den Uhrzeigersinn (vollständig offen).</p>
+            <p>Drehe danach alle Klicks an Gabel und Dämpfer komplett auf das **Minus-Symbol (-)** vollständig offen.</p>
         </div>
 
-        <!-- SCHRITT 2 -->
         <div id="step-card-2" class="card" style="display:none;">
             <h3>Schritt 2: SAG (Negativfederweg)</h3>
             <p>Zieh deine Bike-Klamotten an. Geh in die "Angriffsposition" (stehend auf den Pedalen). Schiebe die O-Ringe an den Elementen ganz ran und steige vorsichtig ab.</p>
-            <p><b>Richtwerte für optimalen Negativfederweg (im Stehen gemessen):</b><br>• Federgabel: 25% – 30% des Gesamtfederwegs<br>• Dämpfer (Heck): 25% – 30% des Gesamtfederwegs</p>
             <label>Eingestellter Luftdruck für den Testlauf</label>
             <div style="display:flex; gap:10px;">
                 <input type="number" id="guide-psi" value="80" style="flex:2;">
@@ -72,24 +69,21 @@
             </div>
         </div>
 
-        <!-- SCHRITT 3 -->
         <div id="step-card-3" class="card" style="display:none;">
             <h3>Schritt 3: Rebound (Zugstufe)</h3>
-            <p>Rolle im Stehen ruhig von einer Bordsteinkante und bleibe danach fest auf den Pedalen stehen. Der verbesserte Filter zieht die Erdbeschleunigung ab und ignoriert Mikro-Vibrationen unter 0.4 G.</p>
+            <p>Rolle im Stehen ruhig von einer Bordsteinkante und bleibe danach fest auf den Pedalen stehen. Der neue Butterworth-Filter reinigt das Signal live.</p>
             <button id="reboundStartBtn" class="main-action" style="background:#6f42c1;">Bordstein-Test Starten (3s)</button>
             <div id="reboundResult" style="margin-top:15px; text-align:center; font-weight: bold; background: #2a2a2a; padding: 10px; border-radius: 8px;">Noch keine Messung durchgeführt.</div>
         </div>
 
-        <!-- SCHRITT 4 -->
         <div id="step-card-4" class="card" style="display:none;">
             <h3>Schritt 4: High-Speed Compression (HSC)</h3>
-            <p>Wechsle oben auf den Reiter <b>"Trail-Test"</b>. Fahre ein ruppiges Stück Trail mit schnellen Schlägen (Wurzeln, Steine). Komm danach hierher zurück.</p>
+            <p>Wechsle oben auf den Reiter <b>"Trail-Test"</b>. Fahre ein ruppiges Sektion mit schnellen Schlägen. Komm danach hierher zurück.</p>
         </div>
 
-        <!-- SCHRITT 5 -->
         <div id="step-card-5" class="card" style="display:none;">
             <h3>Schritt 5: Low-Speed Compression (LSC)</h3>
-            <p>Achte beim Fahren darauf, ob das Bike beim harten Anbremsen oder in tiefen Kurvenkompressionen wegsackt. Falls ja, erhöhen wir im Trail-Test die LSC-Klicks.</p>
+            <p>Achte beim Fahren darauf, ob das Bike beim harten Anbremsen wegsackt.</p>
             <h3 style="color: #28a745; margin-top: 20px;">🎉 Guide bereit!</h3>
         </div>
 
@@ -103,7 +97,7 @@
     <div id="page-measure" style="display:none;">
         <div class="card" id="setup-area">
             <h3>Lauf-Konfiguration</h3>
-            <input type="text" id="runName" placeholder="Trail Name (z.B. Downhill-Sektion)...">
+            <input type="text" id="runName" placeholder="Trail Name (z.B. Bordstein-Rohdaten)...">
             
             <div style="display:flex; gap:10px; margin-top: 5px;">
                 <div style="flex:1;"><label>Luftdruck (PSI)</label><input type="number" id="springVal" value="80"></div>
@@ -118,13 +112,9 @@
         </div>
 
         <div id="feedback-modal" class="card" style="display:none;">
-            <h3>Subjektives Feedback</h3>
-            <label>Grip & Traktion (1=Rutschig, 5=Perfekt)</label>
-            <input type="range" id="rate-grip" min="1" max="5" value="3">
-            <label>Fahrwerkshärte / Arm-Pump (1=Zu weich, 5=Zu hart/Starr)</label>
-            <input type="range" id="rate-arm" min="1" max="5" value="3">
+            <h3>Lauf abschließen</h3>
             <label>Deine Notizen</label>
-            <textarea id="run-comment" rows="2" placeholder="Schläge, Durchschläge oder Fahrgefühl..."></textarea>
+            <textarea id="run-comment" rows="2" placeholder="z.B. Test für Filtermethode..."></textarea>
             <button onclick="finalizeSave()" class="main-action" style="background:#28a745;">Speichern & FFT-Analyse</button>
         </div>
     </div>
@@ -135,25 +125,23 @@
         <div id="archive-list"></div>
     </div>
 
-    <!-- FULLSCREEN CHART OVERLAY -->
+    <!-- FULLSCREEN CHART OVERLAY WITH CSV EXPORT -->
     <div id="fullscreenModal" class="fullscreen-overlay">
         <button class="close-fullscreen" onclick="closeFullscreen()">×</button>
         <div class="chart-wrapper">
             <canvas id="myChart"></canvas>
         </div>
+        <button id="csvExportBtn" class="main-action" style="background: #28a745; margin: 10px 0 5px 0; padding: 10px;">📊 ROHDATEN ALS CSV EXPORTIEREN</button>
         <div id="compareDetails" class="analysis-box"></div>
     </div>
 
     <script>
-        let accelerationData = [];
+        let rawAccelerationLog = []; // HIER SPEICHERN WIR DIE ABSOLUTEN ROHDATEN
         let isRecording = false;
         let sensorActive = false;
         let chart = null;
         let currentStep = 1;
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
-        }
+        let currentViewingRun = null; 
 
         function showPage(page) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -170,13 +158,8 @@
             currentStep += direction;
             document.getElementById(`step-card-${currentStep}`).style.display = 'block';
             document.getElementById(`ind-${currentStep}`).classList.add('active-step');
-            
             document.getElementById('guide-prev').style.display = currentStep > 1 ? 'block' : 'none';
             document.getElementById('guide-next').style.display = currentStep < 5 ? 'block' : 'none';
-            
-            if(currentStep === 3) {
-                document.getElementById('springVal').value = document.getElementById('guide-psi').value;
-            }
         }
 
         const initSensors = () => {
@@ -199,20 +182,24 @@
                 let acc = e.acceleration || e.accelerationIncludingGravity;
                 if(!acc || acc.x === null) return;
                 
-                // Vektorsumme berechnen
                 let total = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+                let timestamp = Date.now();
                 
-                // OPTIMIERUNG: Erdbeschleunigung abziehen (In G-Kraft umrechnen, wobei 1 G = 9.81 m/s²)
-                // Ruhezustand = 0 G. Reine Schlagwirkung wird gemessen.
-                let gForcePure = Math.abs(total - 9.81) / 9.81; 
-                accelerationData.push(gForcePure);
+                // Wir loggen das präzise Rohdatenobjekt (Zeitstempel, Einzelachsen und Gesamtwert)
+                rawAccelerationLog.push({
+                    t: timestamp,
+                    x: acc.x.toFixed(3),
+                    y: acc.y.toFixed(3),
+                    z: acc.z.toFixed(3),
+                    total: total.toFixed(3)
+                });
             });
         }
 
         document.getElementById('mainBtn').onclick = function() {
             if (!sensorActive) { initSensors(); }
             if (!isRecording) {
-                accelerationData = []; 
+                rawAccelerationLog = []; 
                 isRecording = true;
                 this.classList.add('record');
                 this.innerText = "AUFNAHME LÄUFT... STOPP";
@@ -225,121 +212,83 @@
             }
         };
 
-// Butterworth-Filter 2. Ordnung (Tiefpass)
-// fc = Grenzfrequenz (20 Hz), fs = Abtastrate des Smartphones (ca. 50 Hz Standard)
-function butterworthLowPassFilter(data, fc = 20, fs = 50) {
-    if (data.length < 3) return data;
+        // Butterworth-Filter 2. Ordnung
+        function butterworthLowPassFilter(data, fc = 20, fs = 50) {
+            if (data.length < 3) return data;
+            const ohm = Math.tan(Math.PI * fc / fs);
+            const c = 1.0 + 2.0 * Math.cos(Math.PI / 4.0) * ohm + ohm * ohm;
+            const b0 = ohm * ohm / c;
+            const b1 = 2.0 * b0;
+            const b2 = b0;
+            const a1 = 2.0 * (ohm * ohm - 1.0) / c;
+            const a2 = (1.0 - 2.0 * Math.cos(Math.PI / 4.0) * ohm + ohm * ohm) / c;
 
-    // Berechnung der Filterkoeffizienten
-    const ohm = Math.tan(Math.PI * fc / fs);
-    const c = 1.0 + 2.0 * Math.cos(Math.PI / 4.0) * ohm + ohm * ohm;
-    
-    const b0 = ohm * ohm / c;
-    const b1 = 2.0 * b0;
-    const b2 = b0;
-    const a1 = 2.0 * (ohm * ohm - 1.0) / c;
-    const a2 = (1.0 - 2.0 * Math.cos(Math.PI / 4.0) * ohm + ohm * ohm) / c;
+            let filtered = new Array(data.length);
+            filtered[0] = data[0];
+            filtered[1] = data[1];
 
-    let filtered = new Array(data.length);
-    
-    // Initialisierung der ersten beiden Punkte
-    filtered[0] = data[0];
-    filtered[1] = data[1];
-
-    // Filter-Schleife (Differenzengleichung)
-    for (let i = 2; i < data.length; i++) {
-        filtered[i] = b0 * data[i] + b1 * data[i-1] + b2 * data[i-2]
-                      - a1 * filtered[i-1] - a2 * filtered[i-2];
-    }
-
-    return filtered;
-}
-
-// OPTIMIERTE REBOUND-AUSWERTUNG MIT BUTTERWORTH
-function processReboundTest() {
-    if(accelerationData.length < 15) {
-        document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte.";
-        return;
-    }
-    
-    // Schätzung der realen Abtastrate (fs) deines Handys
-    // Die meisten Android-Geräte tasten im Browser mit ca. 50-60 Hz ab.
-    let fs = 50; 
-    
-    // 1. Anwendung des harten Butterworth-Filters bei 20Hz
-    let clean = butterworthLowPassFilter(accelerationData, 20, fs);
-    
-    // 2. Finde den Haupt-Schlag (Bordstein-Drop)
-    let maxVal = Math.max(...clean);
-    let mainImpactIdx = clean.indexOf(maxVal);
-
-    if(maxVal < 0.25) {
-        document.getElementById('reboundResult').innerHTML = "Kein eindeutiger Bordsteinschlag erkannt.<br><span style='color:#dc3545; font-size:0.85em;'>Bitte fahre etwas dynamischer von der Kante.</span>";
-        return;
-    }
-
-    // 3. Peak-Detections-Algorithmus mit zeitlicher Sperre (Hysterese)
-    // Nach dem Hauptschlag ignorieren wir die ersten 100ms, da hier das Fahrwerk noch komprimiert.
-    let minThreshold = Math.max(0.35, maxVal * 0.3); // Mindestens 0.35G oder 30% des Hauptschlags
-    let osc = 0;
-    let lastPeakIdx = mainImpactIdx;
-    
-    // Mindestabstand zwischen Schwingungen: Bei 50Hz sind 8 Samples = ~160ms.
-    // Ein MTB-Hinterbau schwingt im ungedämpften Zustand mit etwa 2-4 Hz nach.
-    let minSamplesBetweenPeaks = 8; 
-
-    for(let i = mainImpactIdx + minSamplesBetweenPeaks; i < clean.length - 1; i++) {
-        // Prüfen auf lokales Maximum
-        if(clean[i] > minThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
-            // Kam dieser Peak mit genügend zeitlichem Abstand zum letzten Peak?
-            if(i - lastPeakIdx > minSamplesBetweenPeaks) { 
-                osc++;
-                lastPeakIdx = i;
+            for (let i = 2; i < data.length; i++) {
+                filtered[i] = b0 * data[i] + b1 * data[i-1] + b2 * data[i-2]
+                              - a1 * filtered[i-1] - a2 * filtered[i-2];
             }
-        }
-    }
-    
-    let advice = osc === 0 ? "✅ Optimal dämpfend! Keine kritischen Nachschwingungen." : osc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${osc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
-    document.getElementById('reboundResult').innerHTML = `Ergebnis: ${osc} Nachschwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
-}
-            
-            let advice = osc === 0 ? "✅ Optimal dämpfend! Keine kritischen Nachschwingungen." : osc === 1 ? "🟡 Sportlich straff (1 Nachschwingung)." : `🐢 Zu schnell! (${osc} Hübe). Rebound/Zugstufe weiter SCHLIESSEN Richtung (+)`;
-            document.getElementById('reboundResult').innerHTML = `Ergebnis: ${osc} Nachschwingungen.<br><span style='font-size:0.85em; font-weight:normal;'>${advice}</span>`;
+            return filtered;
         }
 
-        function computeInlineFFT(samples) {
-            let N = samples.length;
-            let powerOfTwo = Math.pow(2, Math.floor(Math.log2(N)));
-            if (powerOfTwo < 8) return { lowSpeed: 0, highSpeed: 0 };
+        document.getElementById('reboundStartBtn').onclick = function() {
+            if (!sensorActive) { alert("Bitte zuerst im Schritt 1 die Sensoren aktivieren!"); return; }
+            this.innerText = "JETZT VOM BORDSTEIN ROLLEN...";
+            this.classList.add('record');
+            rawAccelerationLog = [];
+            isRecording = true;
             
-            let data = samples.slice(0, powerOfTwo);
-            let lowEnergy = 0;
-            let highEnergy = 0;
+            setTimeout(() => {
+                isRecording = false;
+                this.innerText = "Bordstein-Test Starten (3s)";
+                this.classList.remove('record');
+                processReboundTest();
+            }, 3000);
+        };
+
+        function processReboundTest() {
+            if(rawAccelerationLog.length < 15) {
+                document.getElementById('reboundResult').innerText = "Fehler: Zu wenige Datenpunkte.";
+                return;
+            }
             
-            for (let k = 1; k < powerOfTwo / 2; k++) {
-                let real = 0;
-                let imag = 0;
-                for (let n = 0; n < powerOfTwo; n++) {
-                    let angle = (2 * Math.PI * k * n) / powerOfTwo;
-                    real += data[n] * Math.cos(angle);
-                    imag -= data[n] * Math.sin(angle);
-                }
-                let magnitude = Math.sqrt(real*real + imag*imag) / powerOfTwo;
-                
-                if (k < powerOfTwo * 0.15) { 
-                    lowEnergy += magnitude;
-                } else if (k < powerOfTwo * 0.45) { 
-                    highEnergy += magnitude;
+            // Berechne reine Stoßkraft (Erdbeschleunigung weg) für den Filter
+            let pureG = rawAccelerationLog.map(v => Math.abs(parseFloat(v.total) - 9.81) / 9.81);
+            let clean = butterworthLowPassFilter(pureG, 20, 50);
+            
+            let maxVal = Math.max(...clean);
+            let mainImpactIdx = clean.indexOf(maxVal);
+
+            if(maxVal < 0.2) {
+                document.getElementById('reboundResult').innerHTML = "Kein eindeutiger Schlag erkannt.";
+                return;
+            }
+
+            let minThreshold = Math.max(0.35, maxVal * 0.3);
+            let osc = 0;
+            let lastPeakIdx = mainImpactIdx;
+            
+            for(let i = mainImpactIdx + 8; i < clean.length - 1; i++) {
+                if(clean[i] > minThreshold && clean[i] > clean[i-1] && clean[i] > clean[i+1]) {
+                    if(i - lastPeakIdx > 8) { 
+                        osc++;
+                        lastPeakIdx = i;
+                    }
                 }
             }
-            return { lowSpeed: lowEnergy * 10, highSpeed: highEnergy * 10 };
+            
+            let advice = osc === 0 ? "✅ Optimal dämpfend!" : `🐢 Zu schnell! Rebound (+) schließen.`;
+            document.getElementById('reboundResult').innerHTML = `Ergebnis: ${osc} Nachschwingungen.<br>${advice}`;
         }
 
         function finalizeSave() {
-            if(accelerationData.length < 20) { alert("Aufnahme zu kurz für Analyse!"); return; }
+            if(rawAccelerationLog.length < 10) { alert("Aufnahme zu kurz!"); return; }
             
-            let fftResult = computeInlineFFT(accelerationData);
-            let filteredTrailData = lowPassFilter(accelerationData, 0.25);
+            let pureG = rawAccelerationLog.map(v => Math.abs(parseFloat(v.total) - 9.81) / 9.81);
+            let filteredTrailData = butterworthLowPassFilter(pureG, 20, 50);
 
             const run = {
                 id: Date.now(),
@@ -351,17 +300,9 @@ function processReboundTest() {
                     hsc: document.getElementById('hscVal').value,
                     lsc: document.getElementById('lscVal').value
                 },
-                feedback: { 
-                    grip: document.getElementById('rate-grip').value, 
-                    arm: document.getElementById('rate-arm').value,
-                    msg: document.getElementById('run-comment').value 
-                },
+                feedback: { msg: document.getElementById('run-comment').value },
                 data: filteredTrailData.map(v => parseFloat(v.toFixed(3))),
-                analysis: { 
-                    ls: fftResult.lowSpeed, 
-                    hs: fftResult.highSpeed, 
-                    verhaeltnis: fftResult.highSpeed / (fftResult.lowSpeed || 1) 
-                }
+                rawLog: rawAccelerationLog // Komplettes Rohdatenarray wird mitgespeichert!
             };
 
             let runs = JSON.parse(localStorage.getItem('mtb_runs') || '[]');
@@ -383,7 +324,7 @@ function processReboundTest() {
                 item.innerHTML = `
                     <button class="delete-btn" onclick="deleteRun(${run.id}); event.stopPropagation();">×</button>
                     <b>${run.name}</b><br>
-                    <small>${run.date} | PSI: ${run.setup.psi} | LSR: ${run.setup.lsr} | LSC: ${run.setup.lsc} | HSC: ${run.setup.hsc}</small>
+                    <small>${run.date} | PSI: ${run.setup.psi} | LSR: ${run.setup.lsr} (Mit Rohdaten-Log)</small>
                 `;
                 item.onclick = () => openFullscreenChart(run);
                 list.appendChild(item);
@@ -391,17 +332,17 @@ function processReboundTest() {
         }
 
         function openFullscreenChart(run) {
+            currentViewingRun = run; // Im Cache halten für eventuellen Export
             document.getElementById('fullscreenModal').style.display = 'block';
             const ctx = document.getElementById('myChart').getContext('2d');
             if(chart) chart.destroy();
             
-            Chart.defaults.color = '#aaa';
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: run.data.map((_, i) => (i / 50).toFixed(1) + "s"), 
                     datasets: [{
-                        label: `${run.name} (Reine Stoßbeschleunigung)`,
+                        label: `${run.name} (Butterworth 20Hz gefiltert)`,
                         data: run.data,
                         borderColor: '#007bff',
                         borderWidth: 1.5,
@@ -412,36 +353,41 @@ function processReboundTest() {
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false, 
-                    animation: false, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true,
-                            title: { display: true, text: 'Reine Stoßkraft (in G, Erdbeschleunigung bereinigt)', color: '#007bff' }
-                        }, 
-                        x: { 
-                            title: { display: true, text: 'Zeitdauer des Testlaufs (Sekunden)', color: '#aaa' }
-                        } 
-                    } 
+                    scales: { y: { beginAtZero: true } } 
                 }
             });
 
-            let Empfehlung = "";
-            let ratio = run.analysis ? run.analysis.verhaeltnis : 0;
-            if(isNaN(ratio) || ratio === 0) {
-                Empfehlung = "ℹ️ <b>Zu wenig Dynamik:</b> Der Lauf war zu kurz oder zu ruhig für eine verlässliche FFT-Dämpfungsempfehlung.";
-            } else if(ratio > 1.5) {
-                Empfehlung = `⚠️ <b>HSC Dämpfungs-Fokus (Verhältnis: ${ratio.toFixed(2)}):</b> Sehr hohe hochfrequente Schwingungen. Wenn sich das Fahrwerk bei schnellen Wurzeln harsch anfühlt, öffne die HSC um 1-2 Klicks Richtung (-).`;
-            } else if(ratio < 0.4) {
-                Empfehlung = `⚠️ <b>LSC Dämpfungs-Fokus (Verhältnis: ${ratio.toFixed(2)}):</b> Starke wellige Bewegungen. Wenn das Bike beim Bremsen oder in Anliegern stark wegsackt, schließe die LSC um 2 Klicks Richtung (+).`;
-            } else {
-                Empfehlung = `✅ <b>Harmonische Balance (Verhältnis: ${ratio.toFixed(2)}):</b> Die FFT-Analyse zeigt ein ausgewogenes Verhältnis zwischen schnellen Schlägen und langsamer Gewichtsverlagerung.`;
-            }
-
             document.getElementById('compareDetails').innerHTML = `
-                <b>FFT Frequenz-Auswertung:</b><br>${Empfehlung}<br>
-                <small style="color: #aaa;">Low-Speed Energie: ${(run.analysis?.ls || 0).toFixed(1)} | High-Speed Energie: ${(run.analysis?.hs || 0).toFixed(1)}</small>
+                <small style="color: #aaa;">Dieses Datenpaket enthält <b>${run.rawLog ? run.rawLog.length : 0}</b> echte Sensor-Rohzeilen für den Rechner-Export.</small>
             `;
         }
+
+        // CSV GENERATOR & DOWNLOAD TRIGGER
+        document.getElementById('csvExportBtn').onclick = function() {
+            if (!currentViewingRun || !currentViewingRun.rawLog) {
+                alert("Keine Rohdaten für diesen Lauf verfügbar.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            // Header-Zeile
+            csvContent += "Timestamp_ms,Acc_X_m_s2,Acc_Y_m_s2,Acc_Z_m_s2,VectorSum_Raw_m_s2\n";
+
+            // Datenzeilen befüllen
+            currentViewingRun.rawLog.forEach(row => {
+                csvContent += `${row.t},${row.x},${row.y},${row.z},${row.total}\n`;
+            });
+
+            // Download-Link simulieren
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `MTB_RAW_${currentViewingRun.name.replace(/\s+/g, '_')}_${currentViewingRun.id}.csv`);
+            document.body.appendChild(link);
+            
+            link.click(); // Trigger
+            document.body.removeChild(link);
+        };
 
         function closeFullscreen() { document.getElementById('fullscreenModal').style.display = 'none'; }
         function deleteRun(id) {
